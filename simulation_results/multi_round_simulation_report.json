@@ -1,0 +1,1122 @@
+{
+  "demo_summary": {
+    "total_scenarios": 6,
+    "successful_scenarios": 6,
+    "success_rate": 1.0,
+    "total_demo_time_seconds": 12.21835,
+    "total_trades": 195,
+    "total_volume": 3080844.842293599,
+    "total_pnl": -154.6804417476852
+  },
+  "scenario_analysis": {
+    "validation": [
+      "SimulationResult(scenario_name='quick_smoke_test', start_time=datetime.datetime(2025, 7, 8, 16, 31, 47, 615063), end_time=datetime.datetime(2025, 7, 8, 16, 31, 47, 615781), duration_seconds=0.000718, total_trades=19, total_volume=225473.7022921409, total_pnl=125.52290872642972, news_events_count=1, agent_performances=[{'agent_id': 'LLM_Agent_1', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': -376.8084704295005, 'total_volume': 45957.349848540485, 'win_rate': 0.4628179167252804, 'sharpe_ratio': 0.9729049841876933, 'max_drawdown': 0.12278015216538118}, {'agent_id': 'LLM_Agent_2', 'agent_type': 'LLM', 'total_trades': 2, 'total_pnl': 298.93414743998966, 'total_volume': 58650.27157009774, 'win_rate': 0.30118548946027074, 'sharpe_ratio': 0.8150470693288168, 'max_drawdown': 0.0945654689458954}, {'agent_id': 'ABIDES_Agent_3', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': 1766.7546577141893, 'total_volume': 65503.651506717855, 'win_rate': 0.5026835637597893, 'sharpe_ratio': -0.02456576790090015, 'max_drawdown': 0.12918769959009868}, {'agent_id': 'ABIDES_Agent_4', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -868.211172294777, 'total_volume': 74262.93026994841, 'win_rate': 0.381506049901557, 'sharpe_ratio': 0.8691939494717529, 'max_drawdown': 0.1379160067267065}, {'agent_id': 'ABIDES_Agent_5', 'agent_type': 'ABIDES', 'total_trades': 1, 'total_pnl': 413.3587328930472, 'total_volume': 85357.05150596454, 'win_rate': 0.36073634040034963, 'sharpe_ratio': 1.7045066826767985, 'max_drawdown': 0.17479678280381344}, {'agent_id': 'ABIDES_Agent_6', 'agent_type': 'ABIDES', 'total_trades': 5, 'total_pnl': -210.12082968838104, 'total_volume': 44543.518613709675, 'win_rate': 0.6222283120745934, 'sharpe_ratio': 1.8540967183555725, 'max_drawdown': 0.15664090697166128}, {'agent_id': 'ABIDES_Agent_7', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': -1489.8224948400837, 'total_volume': 70288.84791108713, 'win_rate': 0.3892785915331278, 'sharpe_ratio': -0.6825019633194683, 'max_drawdown': 0.1343534698953125}], market_metrics={'avg_spread': 0.029067032804897627, 'volatility': 0.1999842919203844, 'liquidity_score': 0.6916925088599714, 'market_efficiency': 0.7393493086886221, 'price_impact': 0.00792587550465348}, error_count=0, success=True)"
+    ],
+    "bull_market": [
+      "SimulationResult(scenario_name='bull_market_momentum', start_time=datetime.datetime(2025, 7, 8, 16, 31, 49, 616765), end_time=datetime.datetime(2025, 7, 8, 16, 31, 49, 646885), duration_seconds=0.03012, total_trades=19, total_volume=589790.0991777807, total_pnl=-479.64407576258424, news_events_count=1, agent_performances=[{'agent_id': 'LLM_Agent_1', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': -159.27836302248477, 'total_volume': 27938.210736347362, 'win_rate': 0.6356491471088831, 'sharpe_ratio': -0.8036799696814835, 'max_drawdown': 0.2492605096345461}, {'agent_id': 'LLM_Agent_2', 'agent_type': 'LLM', 'total_trades': 4, 'total_pnl': 100.66060749521387, 'total_volume': 84092.69485820692, 'win_rate': 0.402255815914635, 'sharpe_ratio': 1.8505752914958844, 'max_drawdown': 0.05109549457280105}, {'agent_id': 'LLM_Agent_3', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': -559.7525016861349, 'total_volume': 60598.54645143393, 'win_rate': 0.42884736842075033, 'sharpe_ratio': 1.575074118976715, 'max_drawdown': 0.16944141849138378}, {'agent_id': 'ABIDES_Agent_4', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': 1285.9193499491705, 'total_volume': 13895.687730315574, 'win_rate': 0.5404827113347868, 'sharpe_ratio': -0.3148257361769461, 'max_drawdown': 0.11197462569782331}, {'agent_id': 'ABIDES_Agent_5', 'agent_type': 'ABIDES', 'total_trades': 1, 'total_pnl': -142.59534310583845, 'total_volume': 98130.91001565912, 'win_rate': 0.40424691840739846, 'sharpe_ratio': -0.16219808361851817, 'max_drawdown': 0.09497687551781107}, {'agent_id': 'ABIDES_Agent_6', 'agent_type': 'ABIDES', 'total_trades': 5, 'total_pnl': -855.7502359949035, 'total_volume': 49046.24095766885, 'win_rate': 0.607445411813885, 'sharpe_ratio': 1.2693639365220903, 'max_drawdown': 0.11045300227564386}, {'agent_id': 'ABIDES_Agent_7', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': -1179.5615696861475, 'total_volume': 90640.09973017915, 'win_rate': 0.5695152249184909, 'sharpe_ratio': 0.2914433572308326, 'max_drawdown': 0.18163290005443655}, {'agent_id': 'ABIDES_Agent_8', 'agent_type': 'ABIDES', 'total_trades': 5, 'total_pnl': -12.993592630149989, 'total_volume': 62757.46776326168, 'win_rate': 0.4535995262333404, 'sharpe_ratio': -0.9316859970368435, 'max_drawdown': 0.11500578948716352}, {'agent_id': 'ABIDES_Agent_9', 'agent_type': 'ABIDES', 'total_trades': 0, 'total_pnl': 591.4496580752153, 'total_volume': 20101.627609992393, 'win_rate': 0.44620414171020967, 'sharpe_ratio': -0.7226983676486455, 'max_drawdown': 0.2223181234860933}, {'agent_id': 'ABIDES_Agent_10', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': 1825.1139773156071, 'total_volume': 27808.847400717183, 'win_rate': 0.35929594584834396, 'sharpe_ratio': -0.2483298912372679, 'max_drawdown': 0.14900457666492684}, {'agent_id': 'ABIDES_Agent_11', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': 1802.1851193784157, 'total_volume': 19762.581126636018, 'win_rate': 0.3836026834594032, 'sharpe_ratio': 1.8570916042855474, 'max_drawdown': 0.2348244396615186}, {'agent_id': 'ABIDES_Agent_12', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': -620.9950120553025, 'total_volume': 38831.55456573974, 'win_rate': 0.5116010290646265, 'sharpe_ratio': 0.6256789780088821, 'max_drawdown': 0.09020420983929407}, {'agent_id': 'ABIDES_Agent_13', 'agent_type': 'ABIDES', 'total_trades': 5, 'total_pnl': -308.0130717141859, 'total_volume': 66560.14596975039, 'win_rate': 0.3074066890530394, 'sharpe_ratio': 0.16129848510442035, 'max_drawdown': 0.19080362945649426}], market_metrics={'avg_spread': 0.02718610265432453, 'volatility': 0.28219444977157687, 'liquidity_score': 0.7293461995947085, 'market_efficiency': 0.7871135425877614, 'price_impact': 0.006922023539834459}, error_count=0, success=True)"
+    ],
+    "bear_market": [
+      "SimulationResult(scenario_name='bear_market_defensive', start_time=datetime.datetime(2025, 7, 8, 16, 31, 51, 647951), end_time=datetime.datetime(2025, 7, 8, 16, 31, 51, 674743), duration_seconds=0.026792, total_trades=33, total_volume=373908.0294516514, total_pnl=-25.68211092048192, news_events_count=1, agent_performances=[{'agent_id': 'LLM_Agent_1', 'agent_type': 'LLM', 'total_trades': 1, 'total_pnl': 3.4455000795558144, 'total_volume': 48164.596604210514, 'win_rate': 0.3590312719558158, 'sharpe_ratio': 0.7049553608878436, 'max_drawdown': 0.15549924010375704}, {'agent_id': 'LLM_Agent_2', 'agent_type': 'LLM', 'total_trades': 6, 'total_pnl': 180.69339038993428, 'total_volume': 89180.9094925382, 'win_rate': 0.5662891589666881, 'sharpe_ratio': 0.5492387603899807, 'max_drawdown': 0.09159462319635843}, {'agent_id': 'LLM_Agent_3', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': 123.3844844784548, 'total_volume': 45617.777843410164, 'win_rate': 0.31882016519993633, 'sharpe_ratio': 1.3313938519464235, 'max_drawdown': 0.2268323533032553}, {'agent_id': 'ABIDES_Agent_4', 'agent_type': 'ABIDES', 'total_trades': 1, 'total_pnl': -465.0942609609856, 'total_volume': 52696.56417236542, 'win_rate': 0.5128016491991946, 'sharpe_ratio': -0.1790809813596692, 'max_drawdown': 0.17178674323646081}, {'agent_id': 'ABIDES_Agent_5', 'agent_type': 'ABIDES', 'total_trades': 6, 'total_pnl': -308.23214194383837, 'total_volume': 91616.38203274482, 'win_rate': 0.6310198465141814, 'sharpe_ratio': 1.9460684160116362, 'max_drawdown': 0.2043758585309265}, {'agent_id': 'ABIDES_Agent_6', 'agent_type': 'ABIDES', 'total_trades': 1, 'total_pnl': -756.8804813233314, 'total_volume': 82452.52489790983, 'win_rate': 0.4105396341805455, 'sharpe_ratio': 0.31533432116646365, 'max_drawdown': 0.12388155229022353}, {'agent_id': 'ABIDES_Agent_7', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': 274.0386236502913, 'total_volume': 70516.57589553388, 'win_rate': 0.4980735293209564, 'sharpe_ratio': 0.39818501365405456, 'max_drawdown': 0.18831022558383498}, {'agent_id': 'ABIDES_Agent_8', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': 285.6045103931725, 'total_volume': 42254.80306212358, 'win_rate': 0.38689445215040696, 'sharpe_ratio': 0.001586342143149011, 'max_drawdown': 0.2058113462245682}, {'agent_id': 'ABIDES_Agent_9', 'agent_type': 'ABIDES', 'total_trades': 1, 'total_pnl': 1933.5468549894808, 'total_volume': 40693.57870129027, 'win_rate': 0.49977988119769123, 'sharpe_ratio': 1.6748209957708728, 'max_drawdown': 0.05110213170342886}, {'agent_id': 'ABIDES_Agent_10', 'agent_type': 'ABIDES', 'total_trades': 7, 'total_pnl': -389.8721136110832, 'total_volume': 45843.27469043408, 'win_rate': 0.4681669374585399, 'sharpe_ratio': -0.9583129064463473, 'max_drawdown': 0.23963654255922162}, {'agent_id': 'ABIDES_Agent_11', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': 629.7879241917313, 'total_volume': 53029.63010926911, 'win_rate': 0.6373338062842187, 'sharpe_ratio': 0.2217379205520862, 'max_drawdown': 0.24723149286026924}], market_metrics={'avg_spread': 0.032527696523110106, 'volatility': 0.19501052864622526, 'liquidity_score': 0.6854999447828304, 'market_efficiency': 0.7140973303518661, 'price_impact': 0.0037633044692940054}, error_count=0, success=True)"
+    ],
+    "high_volatility": [
+      "SimulationResult(scenario_name='volatile_market_chaos', start_time=datetime.datetime(2025, 7, 8, 16, 31, 53, 675842), end_time=datetime.datetime(2025, 7, 8, 16, 31, 53, 723984), duration_seconds=0.048142, total_trades=42, total_volume=359376.87299476063, total_pnl=332.7753951960213, news_events_count=5, agent_performances=[{'agent_id': 'LLM_Agent_1', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': 222.88488942594108, 'total_volume': 23121.45659847455, 'win_rate': 0.506131267476653, 'sharpe_ratio': -0.5719346488870647, 'max_drawdown': 0.09281598524800255}, {'agent_id': 'LLM_Agent_2', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': -759.4364043826462, 'total_volume': 13791.469157675743, 'win_rate': 0.3596967882042201, 'sharpe_ratio': -0.17333338617541771, 'max_drawdown': 0.1760772270572052}, {'agent_id': 'LLM_Agent_3', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': 1263.9953264147657, 'total_volume': 46742.69542698578, 'win_rate': 0.6329745264790172, 'sharpe_ratio': 0.7762980266968542, 'max_drawdown': 0.05905808959501644}, {'agent_id': 'LLM_Agent_4', 'agent_type': 'LLM', 'total_trades': 1, 'total_pnl': 246.2146945583468, 'total_volume': 17693.32147979583, 'win_rate': 0.3722995101745246, 'sharpe_ratio': 0.07782993589538023, 'max_drawdown': 0.053911111202145756}, {'agent_id': 'ABIDES_Agent_5', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -1774.087095727026, 'total_volume': 24173.25589286712, 'win_rate': 0.4085401433764729, 'sharpe_ratio': 1.5428634447342122, 'max_drawdown': 0.14462760289538862}, {'agent_id': 'ABIDES_Agent_6', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -34.29520731337679, 'total_volume': 92245.38981586255, 'win_rate': 0.5035605797663913, 'sharpe_ratio': -0.680112861228186, 'max_drawdown': 0.19815836670622972}, {'agent_id': 'ABIDES_Agent_7', 'agent_type': 'ABIDES', 'total_trades': 5, 'total_pnl': -279.79687507460324, 'total_volume': 72700.5572855862, 'win_rate': 0.5202275380035934, 'sharpe_ratio': 1.1983513261701106, 'max_drawdown': 0.1665525453188152}, {'agent_id': 'ABIDES_Agent_8', 'agent_type': 'ABIDES', 'total_trades': 1, 'total_pnl': 163.7267638028778, 'total_volume': 80638.46345195315, 'win_rate': 0.3568889218227392, 'sharpe_ratio': 0.9873056987923077, 'max_drawdown': 0.22813030736561785}, {'agent_id': 'ABIDES_Agent_9', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': -472.78842019709526, 'total_volume': 15269.22474254511, 'win_rate': 0.5480147462045096, 'sharpe_ratio': -0.2729140461028273, 'max_drawdown': 0.13637650730082002}, {'agent_id': 'ABIDES_Agent_10', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': 282.4680587529496, 'total_volume': 16158.901827120317, 'win_rate': 0.35360977538003846, 'sharpe_ratio': 0.6415682689893487, 'max_drawdown': 0.1649428791608769}, {'agent_id': 'ABIDES_Agent_11', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': -1094.0921113662998, 'total_volume': 13122.179391914513, 'win_rate': 0.3452061599815707, 'sharpe_ratio': 0.06408059089300644, 'max_drawdown': 0.16637045399903666}, {'agent_id': 'ABIDES_Agent_12', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': -658.5930039079328, 'total_volume': 63884.054668983845, 'win_rate': 0.6272043861578207, 'sharpe_ratio': 1.9206000060525166, 'max_drawdown': 0.15621724560073247}, {'agent_id': 'ABIDES_Agent_13', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': 47.10746138255157, 'total_volume': 59620.49597143131, 'win_rate': 0.334580489080576, 'sharpe_ratio': 1.691890313249555, 'max_drawdown': 0.09361766283535917}, {'agent_id': 'ABIDES_Agent_14', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': -1877.236171131175, 'total_volume': 93588.65159475846, 'win_rate': 0.5853233119934802, 'sharpe_ratio': 1.2934920121900113, 'max_drawdown': 0.1049397132866315}, {'agent_id': 'ABIDES_Agent_15', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -1224.0231285797242, 'total_volume': 56539.844263882704, 'win_rate': 0.5775142020556661, 'sharpe_ratio': 0.18732642519157605, 'max_drawdown': 0.1665961161599216}, {'agent_id': 'ABIDES_Agent_16', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': 302.0362316628921, 'total_volume': 72643.29778700107, 'win_rate': 0.4862916876542006, 'sharpe_ratio': -0.5474775231038932, 'max_drawdown': 0.05650313274630721}, {'agent_id': 'ABIDES_Agent_17', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': 1435.1429488713077, 'total_volume': 29411.563884185533, 'win_rate': 0.3898582049328656, 'sharpe_ratio': 0.6826683808464993, 'max_drawdown': 0.11162073941535676}, {'agent_id': 'ABIDES_Agent_18', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': 617.959437007239, 'total_volume': 35330.75896337499, 'win_rate': 0.5110689583374199, 'sharpe_ratio': 1.8161203910464851, 'max_drawdown': 0.23019701395631964}, {'agent_id': 'ABIDES_Agent_19', 'agent_type': 'ABIDES', 'total_trades': 1, 'total_pnl': -421.15734044457105, 'total_volume': 25584.575659546375, 'win_rate': 0.6866357586356806, 'sharpe_ratio': 0.8573534247661168, 'max_drawdown': 0.191527497411353}], market_metrics={'avg_spread': 0.027107842183349724, 'volatility': 0.399695973055186, 'liquidity_score': 0.8177029037629733, 'market_efficiency': 0.9039685436606245, 'price_impact': 0.0025646107247074505}, error_count=0, success=True)"
+    ],
+    "stress_test": [
+      "SimulationResult(scenario_name='large_scale_stress_test', start_time=datetime.datetime(2025, 7, 8, 16, 31, 55, 725407), end_time=datetime.datetime(2025, 7, 8, 16, 31, 55, 800537), duration_seconds=0.07513, total_trades=57, total_volume=717106.8075915044, total_pnl=938.247800771285, news_events_count=1, agent_performances=[{'agent_id': 'LLM_Agent_1', 'agent_type': 'LLM', 'total_trades': 5, 'total_pnl': 973.2574970565194, 'total_volume': 70699.49651475855, 'win_rate': 0.3347670340551001, 'sharpe_ratio': 0.5437438431660768, 'max_drawdown': 0.11269617319643677}, {'agent_id': 'LLM_Agent_2', 'agent_type': 'LLM', 'total_trades': 2, 'total_pnl': -578.1917379503809, 'total_volume': 90372.84105678675, 'win_rate': 0.41944735531434013, 'sharpe_ratio': 0.12883350560873286, 'max_drawdown': 0.22702499735109455}, {'agent_id': 'LLM_Agent_3', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': 1086.0171639558625, 'total_volume': 30414.241034096704, 'win_rate': 0.627230737080388, 'sharpe_ratio': -0.8855540931450948, 'max_drawdown': 0.12997040898183643}, {'agent_id': 'LLM_Agent_4', 'agent_type': 'LLM', 'total_trades': 4, 'total_pnl': -1106.0420806984691, 'total_volume': 82571.15208660673, 'win_rate': 0.4348273178120547, 'sharpe_ratio': -0.9528488078664163, 'max_drawdown': 0.09339206109558294}, {'agent_id': 'LLM_Agent_5', 'agent_type': 'LLM', 'total_trades': 1, 'total_pnl': 1145.0455037479196, 'total_volume': 99862.57345453305, 'win_rate': 0.3326775415122873, 'sharpe_ratio': 1.7166887759497573, 'max_drawdown': 0.19366182343802818}, {'agent_id': 'LLM_Agent_6', 'agent_type': 'LLM', 'total_trades': 6, 'total_pnl': -772.0583946177263, 'total_volume': 39370.42019998538, 'win_rate': 0.6179985523181261, 'sharpe_ratio': 0.7573978697357795, 'max_drawdown': 0.11518829209985876}, {'agent_id': 'ABIDES_Agent_7', 'agent_type': 'ABIDES', 'total_trades': 0, 'total_pnl': -1472.5044014212492, 'total_volume': 18825.288266071864, 'win_rate': 0.6043841077958036, 'sharpe_ratio': 0.3620537353795945, 'max_drawdown': 0.06994858002760543}, {'agent_id': 'ABIDES_Agent_8', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': 1504.5967144523731, 'total_volume': 63782.02526417465, 'win_rate': 0.6596369373467865, 'sharpe_ratio': -0.46716836454948485, 'max_drawdown': 0.22683417459354893}, {'agent_id': 'ABIDES_Agent_9', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': 1420.3993976448132, 'total_volume': 71495.58470292758, 'win_rate': 0.6619141090071168, 'sharpe_ratio': -0.5597493418738616, 'max_drawdown': 0.19320419743874845}, {'agent_id': 'ABIDES_Agent_10', 'agent_type': 'ABIDES', 'total_trades': 5, 'total_pnl': 2202.398018130403, 'total_volume': 32394.468099017624, 'win_rate': 0.4505298345093425, 'sharpe_ratio': 0.8236921051268238, 'max_drawdown': 0.0715531529184817}, {'agent_id': 'ABIDES_Agent_11', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': -1341.5127327045204, 'total_volume': 53934.47261909579, 'win_rate': 0.5216771327044324, 'sharpe_ratio': 0.7162171352585256, 'max_drawdown': 0.0939417375540141}, {'agent_id': 'ABIDES_Agent_12', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': 1137.5135447165785, 'total_volume': 57639.907933889044, 'win_rate': 0.5482442219930792, 'sharpe_ratio': -0.3602135738681487, 'max_drawdown': 0.09983507408397388}, {'agent_id': 'ABIDES_Agent_13', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -2092.0587841512433, 'total_volume': 52836.05293324418, 'win_rate': 0.3551202506922522, 'sharpe_ratio': 0.7910822322030611, 'max_drawdown': 0.12179035442749825}, {'agent_id': 'ABIDES_Agent_14', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -1711.5092011303586, 'total_volume': 45975.39819000602, 'win_rate': 0.6330741152294725, 'sharpe_ratio': 0.059321101032164814, 'max_drawdown': 0.10717179449326841}, {'agent_id': 'ABIDES_Agent_15', 'agent_type': 'ABIDES', 'total_trades': 1, 'total_pnl': 194.87502553928508, 'total_volume': 19002.96810413292, 'win_rate': 0.5342473566391113, 'sharpe_ratio': 1.685658824506616, 'max_drawdown': 0.13139068141070248}, {'agent_id': 'ABIDES_Agent_16', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -168.4283718597762, 'total_volume': 48561.16376230093, 'win_rate': 0.5769322501970529, 'sharpe_ratio': 0.6942555319274972, 'max_drawdown': 0.16982550135137292}, {'agent_id': 'ABIDES_Agent_17', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': 1640.1536778920108, 'total_volume': 56553.55838767056, 'win_rate': 0.6584850880399606, 'sharpe_ratio': 1.468752576593464, 'max_drawdown': 0.22394419588202524}, {'agent_id': 'ABIDES_Agent_18', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': -644.5357662986361, 'total_volume': 60356.58558600264, 'win_rate': 0.4525011891789416, 'sharpe_ratio': -0.2170043132258781, 'max_drawdown': 0.20623294963787836}, {'agent_id': 'ABIDES_Agent_19', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': -84.59878183335545, 'total_volume': 63125.95734280373, 'win_rate': 0.5704926303005817, 'sharpe_ratio': 1.972808818019522, 'max_drawdown': 0.07173522251645735}, {'agent_id': 'ABIDES_Agent_20', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -452.42655992972914, 'total_volume': 74432.39575777802, 'win_rate': 0.6083822531863351, 'sharpe_ratio': 1.9912967132435209, 'max_drawdown': 0.23098192890838015}, {'agent_id': 'ABIDES_Agent_21', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': 442.82345493030437, 'total_volume': 20619.636342540223, 'win_rate': 0.3900411084300168, 'sharpe_ratio': 1.648707574892994, 'max_drawdown': 0.24814413716481987}, {'agent_id': 'ABIDES_Agent_22', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': -262.44914698229786, 'total_volume': 76406.25463607874, 'win_rate': 0.5489579319802079, 'sharpe_ratio': -0.31726373126223983, 'max_drawdown': 0.22599450130858278}, {'agent_id': 'ABIDES_Agent_23', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': 284.19805288510395, 'total_volume': 89957.5172946228, 'win_rate': 0.44962425212525214, 'sharpe_ratio': 1.1873120646602553, 'max_drawdown': 0.1580930333938998}, {'agent_id': 'ABIDES_Agent_24', 'agent_type': 'ABIDES', 'total_trades': 5, 'total_pnl': -268.20359177444, 'total_volume': 99221.25199537046, 'win_rate': 0.5024694120168821, 'sharpe_ratio': 0.28661112262088984, 'max_drawdown': 0.11669906367964078}, {'agent_id': 'ABIDES_Agent_25', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': 73.6919994027502, 'total_volume': 63019.92839945729, 'win_rate': 0.4856088328241316, 'sharpe_ratio': 1.3736761764618652, 'max_drawdown': 0.06484102921086876}, {'agent_id': 'ABIDES_Agent_26', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': 88.29773764257175, 'total_volume': 49030.74031317708, 'win_rate': 0.4626502476545445, 'sharpe_ratio': 0.22755411893820088, 'max_drawdown': 0.14962411479513837}, {'agent_id': 'ABIDES_Agent_27', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': -328.9801010344709, 'total_volume': 65108.7461093702, 'win_rate': 0.42706495310533, 'sharpe_ratio': 1.9619961762929123, 'max_drawdown': 0.21236037481903552}, {'agent_id': 'ABIDES_Agent_28', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -136.11331912773787, 'total_volume': 45879.44319674844, 'win_rate': 0.567090023560202, 'sharpe_ratio': 0.04934249457543216, 'max_drawdown': 0.14803187239582083}, {'agent_id': 'ABIDES_Agent_29', 'agent_type': 'ABIDES', 'total_trades': 6, 'total_pnl': -923.8368103786065, 'total_volume': 55935.215872278844, 'win_rate': 0.40077277040952247, 'sharpe_ratio': 1.6860439055089356, 'max_drawdown': 0.22021394999680677}, {'agent_id': 'ABIDES_Agent_30', 'agent_type': 'ABIDES', 'total_trades': 5, 'total_pnl': -341.17613578465233, 'total_volume': 95544.51070218573, 'win_rate': 0.36460392270157493, 'sharpe_ratio': -0.7413429160804769, 'max_drawdown': 0.12268076220205178}, {'agent_id': 'ABIDES_Agent_31', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': -1179.0117338414252, 'total_volume': 78515.93704688713, 'win_rate': 0.6615878974024154, 'sharpe_ratio': 0.4705745137609916, 'max_drawdown': 0.1773324475888174}], market_metrics={'avg_spread': 0.025122022746943244, 'volatility': 0.3788331620929566, 'liquidity_score': 0.7196264984269248, 'market_efficiency': 0.9137427303933052, 'price_impact': 0.008270452279520744}, error_count=0, success=True)"
+    ],
+    "llm_comparison": [
+      "SimulationResult(scenario_name='llm_effectiveness_test', start_time=datetime.datetime(2025, 7, 8, 16, 31, 57, 801913), end_time=datetime.datetime(2025, 7, 8, 16, 31, 57, 832034), duration_seconds=0.030121, total_trades=25, total_volume=815189.3307857611, total_pnl=-1045.900359758355, news_events_count=3, agent_performances=[{'agent_id': 'LLM_Agent_1', 'agent_type': 'LLM', 'total_trades': 0, 'total_pnl': 178.09116696662798, 'total_volume': 76536.63384416308, 'win_rate': 0.45336829897476144, 'sharpe_ratio': -0.267225666007192, 'max_drawdown': 0.20153426038994554}, {'agent_id': 'LLM_Agent_2', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': 136.47476568550508, 'total_volume': 85959.84765927611, 'win_rate': 0.4627397642690208, 'sharpe_ratio': -0.24324774236013735, 'max_drawdown': 0.10556772193932379}, {'agent_id': 'LLM_Agent_3', 'agent_type': 'LLM', 'total_trades': 3, 'total_pnl': 1153.0641184120968, 'total_volume': 72323.84061039865, 'win_rate': 0.6443237149691672, 'sharpe_ratio': 0.9270880043476415, 'max_drawdown': 0.060992124054220054}, {'agent_id': 'LLM_Agent_4', 'agent_type': 'LLM', 'total_trades': 4, 'total_pnl': -393.32471493169936, 'total_volume': 66691.37764693928, 'win_rate': 0.658557713963871, 'sharpe_ratio': 0.5873661054945887, 'max_drawdown': 0.205498196715319}, {'agent_id': 'LLM_Agent_5', 'agent_type': 'LLM', 'total_trades': 5, 'total_pnl': -1207.9437810050808, 'total_volume': 22110.02522901992, 'win_rate': 0.5647461238111815, 'sharpe_ratio': 0.849444098278449, 'max_drawdown': 0.05320494428209841}, {'agent_id': 'ABIDES_Agent_6', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': -976.4377491512691, 'total_volume': 49840.69730430146, 'win_rate': 0.5105042615750855, 'sharpe_ratio': 1.5409427721071052, 'max_drawdown': 0.13151824206210166}, {'agent_id': 'ABIDES_Agent_7', 'agent_type': 'ABIDES', 'total_trades': 3, 'total_pnl': 36.98151966760334, 'total_volume': 54097.90732013007, 'win_rate': 0.43715719445997037, 'sharpe_ratio': 0.40219119633015943, 'max_drawdown': 0.23791974463036952}, {'agent_id': 'ABIDES_Agent_8', 'agent_type': 'ABIDES', 'total_trades': 8, 'total_pnl': -669.8447764900669, 'total_volume': 75206.76476750459, 'win_rate': 0.488899246459927, 'sharpe_ratio': 0.554665514133702, 'max_drawdown': 0.2382792029103391}, {'agent_id': 'ABIDES_Agent_9', 'agent_type': 'ABIDES', 'total_trades': 2, 'total_pnl': -486.474856497324, 'total_volume': 74630.21934891565, 'win_rate': 0.3739635171498299, 'sharpe_ratio': 1.504831393958908, 'max_drawdown': 0.07301200266462743}, {'agent_id': 'ABIDES_Agent_10', 'agent_type': 'ABIDES', 'total_trades': 4, 'total_pnl': -270.99103893584515, 'total_volume': 73558.37820543081, 'win_rate': 0.6338547750784227, 'sharpe_ratio': -0.19910367320785782, 'max_drawdown': 0.17770152042162496}], market_metrics={'avg_spread': 0.016544742915082532, 'volatility': 0.36647187639496626, 'liquidity_score': 0.659740198178659, 'market_efficiency': 0.7546299703788558, 'price_impact': 0.009409287141053324}, error_count=0, success=True)"
+    ]
+  },
+  "agent_comparison": {
+    "llm_agents": {
+      "count": 23,
+      "avg_pnl": 52.144643799243944,
+      "std_pnl": 705.1203554447776,
+      "total_pnl": 1199.3268073826105
+    },
+    "abides_agents": {
+      "count": 68,
+      "avg_pnl": -96.66435411740999,
+      "std_pnl": 976.5370255560717,
+      "total_pnl": -6573.17607998388
+    }
+  },
+  "regime_analysis": {
+    "stable": {
+      "avg_pnl": 125.52290872642972,
+      "avg_trades": 19.0,
+      "success_rate": 0.3333333333333333
+    },
+    "bull": {
+      "avg_pnl": -479.64407576258424,
+      "avg_trades": 19.0,
+      "success_rate": 1.0
+    },
+    "bear": {
+      "avg_pnl": -25.68211092048192,
+      "avg_trades": 33.0,
+      "success_rate": 1.0
+    },
+    "volatile": {
+      "avg_pnl": 332.7753951960213,
+      "avg_trades": 42.0,
+      "success_rate": 1.0
+    }
+  },
+  "scalability_metrics": {
+    "max_agents_tested": "31",
+    "max_symbols_tested": "8",
+    "avg_trades_per_second": 32.5,
+    "performance_correlation_with_scale": 0.922976835064743,
+    "scalability_rating": "Good"
+  },
+  "error_analysis": {
+    "total_errors": 0,
+    "failed_scenarios": 0,
+    "error_rate": 0.0,
+    "failed_scenario_names": [],
+    "reliability_score": 1.0
+  },
+  "detailed_results": [
+    {
+      "scenario_name": "quick_smoke_test",
+      "start_time": "2025-07-08 16:31:47.615063",
+      "end_time": "2025-07-08 16:31:47.615781",
+      "duration_seconds": 0.000718,
+      "total_trades": 19,
+      "total_volume": 225473.7022921409,
+      "total_pnl": 125.52290872642972,
+      "news_events_count": 1,
+      "agent_performances": [
+        {
+          "agent_id": "LLM_Agent_1",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": -376.8084704295005,
+          "total_volume": 45957.349848540485,
+          "win_rate": 0.4628179167252804,
+          "sharpe_ratio": 0.9729049841876933,
+          "max_drawdown": 0.12278015216538118
+        },
+        {
+          "agent_id": "LLM_Agent_2",
+          "agent_type": "LLM",
+          "total_trades": 2,
+          "total_pnl": 298.93414743998966,
+          "total_volume": 58650.27157009774,
+          "win_rate": 0.30118548946027074,
+          "sharpe_ratio": 0.8150470693288168,
+          "max_drawdown": 0.0945654689458954
+        },
+        {
+          "agent_id": "ABIDES_Agent_3",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": 1766.7546577141893,
+          "total_volume": 65503.651506717855,
+          "win_rate": 0.5026835637597893,
+          "sharpe_ratio": -0.02456576790090015,
+          "max_drawdown": 0.12918769959009868
+        },
+        {
+          "agent_id": "ABIDES_Agent_4",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -868.211172294777,
+          "total_volume": 74262.93026994841,
+          "win_rate": 0.381506049901557,
+          "sharpe_ratio": 0.8691939494717529,
+          "max_drawdown": 0.1379160067267065
+        },
+        {
+          "agent_id": "ABIDES_Agent_5",
+          "agent_type": "ABIDES",
+          "total_trades": 1,
+          "total_pnl": 413.3587328930472,
+          "total_volume": 85357.05150596454,
+          "win_rate": 0.36073634040034963,
+          "sharpe_ratio": 1.7045066826767985,
+          "max_drawdown": 0.17479678280381344
+        },
+        {
+          "agent_id": "ABIDES_Agent_6",
+          "agent_type": "ABIDES",
+          "total_trades": 5,
+          "total_pnl": -210.12082968838104,
+          "total_volume": 44543.518613709675,
+          "win_rate": 0.6222283120745934,
+          "sharpe_ratio": 1.8540967183555725,
+          "max_drawdown": 0.15664090697166128
+        },
+        {
+          "agent_id": "ABIDES_Agent_7",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": -1489.8224948400837,
+          "total_volume": 70288.84791108713,
+          "win_rate": 0.3892785915331278,
+          "sharpe_ratio": -0.6825019633194683,
+          "max_drawdown": 0.1343534698953125
+        }
+      ],
+      "market_metrics": {
+        "avg_spread": 0.029067032804897627,
+        "volatility": 0.1999842919203844,
+        "liquidity_score": 0.6916925088599714,
+        "market_efficiency": 0.7393493086886221,
+        "price_impact": 0.00792587550465348
+      },
+      "error_count": 0,
+      "success": true
+    },
+    {
+      "scenario_name": "bull_market_momentum",
+      "start_time": "2025-07-08 16:31:49.616765",
+      "end_time": "2025-07-08 16:31:49.646885",
+      "duration_seconds": 0.03012,
+      "total_trades": 19,
+      "total_volume": 589790.0991777807,
+      "total_pnl": -479.64407576258424,
+      "news_events_count": 1,
+      "agent_performances": [
+        {
+          "agent_id": "LLM_Agent_1",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": -159.27836302248477,
+          "total_volume": 27938.210736347362,
+          "win_rate": 0.6356491471088831,
+          "sharpe_ratio": -0.8036799696814835,
+          "max_drawdown": 0.2492605096345461
+        },
+        {
+          "agent_id": "LLM_Agent_2",
+          "agent_type": "LLM",
+          "total_trades": 4,
+          "total_pnl": 100.66060749521387,
+          "total_volume": 84092.69485820692,
+          "win_rate": 0.402255815914635,
+          "sharpe_ratio": 1.8505752914958844,
+          "max_drawdown": 0.05109549457280105
+        },
+        {
+          "agent_id": "LLM_Agent_3",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": -559.7525016861349,
+          "total_volume": 60598.54645143393,
+          "win_rate": 0.42884736842075033,
+          "sharpe_ratio": 1.575074118976715,
+          "max_drawdown": 0.16944141849138378
+        },
+        {
+          "agent_id": "ABIDES_Agent_4",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": 1285.9193499491705,
+          "total_volume": 13895.687730315574,
+          "win_rate": 0.5404827113347868,
+          "sharpe_ratio": -0.3148257361769461,
+          "max_drawdown": 0.11197462569782331
+        },
+        {
+          "agent_id": "ABIDES_Agent_5",
+          "agent_type": "ABIDES",
+          "total_trades": 1,
+          "total_pnl": -142.59534310583845,
+          "total_volume": 98130.91001565912,
+          "win_rate": 0.40424691840739846,
+          "sharpe_ratio": -0.16219808361851817,
+          "max_drawdown": 0.09497687551781107
+        },
+        {
+          "agent_id": "ABIDES_Agent_6",
+          "agent_type": "ABIDES",
+          "total_trades": 5,
+          "total_pnl": -855.7502359949035,
+          "total_volume": 49046.24095766885,
+          "win_rate": 0.607445411813885,
+          "sharpe_ratio": 1.2693639365220903,
+          "max_drawdown": 0.11045300227564386
+        },
+        {
+          "agent_id": "ABIDES_Agent_7",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": -1179.5615696861475,
+          "total_volume": 90640.09973017915,
+          "win_rate": 0.5695152249184909,
+          "sharpe_ratio": 0.2914433572308326,
+          "max_drawdown": 0.18163290005443655
+        },
+        {
+          "agent_id": "ABIDES_Agent_8",
+          "agent_type": "ABIDES",
+          "total_trades": 5,
+          "total_pnl": -12.993592630149989,
+          "total_volume": 62757.46776326168,
+          "win_rate": 0.4535995262333404,
+          "sharpe_ratio": -0.9316859970368435,
+          "max_drawdown": 0.11500578948716352
+        },
+        {
+          "agent_id": "ABIDES_Agent_9",
+          "agent_type": "ABIDES",
+          "total_trades": 0,
+          "total_pnl": 591.4496580752153,
+          "total_volume": 20101.627609992393,
+          "win_rate": 0.44620414171020967,
+          "sharpe_ratio": -0.7226983676486455,
+          "max_drawdown": 0.2223181234860933
+        },
+        {
+          "agent_id": "ABIDES_Agent_10",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": 1825.1139773156071,
+          "total_volume": 27808.847400717183,
+          "win_rate": 0.35929594584834396,
+          "sharpe_ratio": -0.2483298912372679,
+          "max_drawdown": 0.14900457666492684
+        },
+        {
+          "agent_id": "ABIDES_Agent_11",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": 1802.1851193784157,
+          "total_volume": 19762.581126636018,
+          "win_rate": 0.3836026834594032,
+          "sharpe_ratio": 1.8570916042855474,
+          "max_drawdown": 0.2348244396615186
+        },
+        {
+          "agent_id": "ABIDES_Agent_12",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": -620.9950120553025,
+          "total_volume": 38831.55456573974,
+          "win_rate": 0.5116010290646265,
+          "sharpe_ratio": 0.6256789780088821,
+          "max_drawdown": 0.09020420983929407
+        },
+        {
+          "agent_id": "ABIDES_Agent_13",
+          "agent_type": "ABIDES",
+          "total_trades": 5,
+          "total_pnl": -308.0130717141859,
+          "total_volume": 66560.14596975039,
+          "win_rate": 0.3074066890530394,
+          "sharpe_ratio": 0.16129848510442035,
+          "max_drawdown": 0.19080362945649426
+        }
+      ],
+      "market_metrics": {
+        "avg_spread": 0.02718610265432453,
+        "volatility": 0.28219444977157687,
+        "liquidity_score": 0.7293461995947085,
+        "market_efficiency": 0.7871135425877614,
+        "price_impact": 0.006922023539834459
+      },
+      "error_count": 0,
+      "success": true
+    },
+    {
+      "scenario_name": "bear_market_defensive",
+      "start_time": "2025-07-08 16:31:51.647951",
+      "end_time": "2025-07-08 16:31:51.674743",
+      "duration_seconds": 0.026792,
+      "total_trades": 33,
+      "total_volume": 373908.0294516514,
+      "total_pnl": -25.68211092048192,
+      "news_events_count": 1,
+      "agent_performances": [
+        {
+          "agent_id": "LLM_Agent_1",
+          "agent_type": "LLM",
+          "total_trades": 1,
+          "total_pnl": 3.4455000795558144,
+          "total_volume": 48164.596604210514,
+          "win_rate": 0.3590312719558158,
+          "sharpe_ratio": 0.7049553608878436,
+          "max_drawdown": 0.15549924010375704
+        },
+        {
+          "agent_id": "LLM_Agent_2",
+          "agent_type": "LLM",
+          "total_trades": 6,
+          "total_pnl": 180.69339038993428,
+          "total_volume": 89180.9094925382,
+          "win_rate": 0.5662891589666881,
+          "sharpe_ratio": 0.5492387603899807,
+          "max_drawdown": 0.09159462319635843
+        },
+        {
+          "agent_id": "LLM_Agent_3",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": 123.3844844784548,
+          "total_volume": 45617.777843410164,
+          "win_rate": 0.31882016519993633,
+          "sharpe_ratio": 1.3313938519464235,
+          "max_drawdown": 0.2268323533032553
+        },
+        {
+          "agent_id": "ABIDES_Agent_4",
+          "agent_type": "ABIDES",
+          "total_trades": 1,
+          "total_pnl": -465.0942609609856,
+          "total_volume": 52696.56417236542,
+          "win_rate": 0.5128016491991946,
+          "sharpe_ratio": -0.1790809813596692,
+          "max_drawdown": 0.17178674323646081
+        },
+        {
+          "agent_id": "ABIDES_Agent_5",
+          "agent_type": "ABIDES",
+          "total_trades": 6,
+          "total_pnl": -308.23214194383837,
+          "total_volume": 91616.38203274482,
+          "win_rate": 0.6310198465141814,
+          "sharpe_ratio": 1.9460684160116362,
+          "max_drawdown": 0.2043758585309265
+        },
+        {
+          "agent_id": "ABIDES_Agent_6",
+          "agent_type": "ABIDES",
+          "total_trades": 1,
+          "total_pnl": -756.8804813233314,
+          "total_volume": 82452.52489790983,
+          "win_rate": 0.4105396341805455,
+          "sharpe_ratio": 0.31533432116646365,
+          "max_drawdown": 0.12388155229022353
+        },
+        {
+          "agent_id": "ABIDES_Agent_7",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": 274.0386236502913,
+          "total_volume": 70516.57589553388,
+          "win_rate": 0.4980735293209564,
+          "sharpe_ratio": 0.39818501365405456,
+          "max_drawdown": 0.18831022558383498
+        },
+        {
+          "agent_id": "ABIDES_Agent_8",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": 285.6045103931725,
+          "total_volume": 42254.80306212358,
+          "win_rate": 0.38689445215040696,
+          "sharpe_ratio": 0.001586342143149011,
+          "max_drawdown": 0.2058113462245682
+        },
+        {
+          "agent_id": "ABIDES_Agent_9",
+          "agent_type": "ABIDES",
+          "total_trades": 1,
+          "total_pnl": 1933.5468549894808,
+          "total_volume": 40693.57870129027,
+          "win_rate": 0.49977988119769123,
+          "sharpe_ratio": 1.6748209957708728,
+          "max_drawdown": 0.05110213170342886
+        },
+        {
+          "agent_id": "ABIDES_Agent_10",
+          "agent_type": "ABIDES",
+          "total_trades": 7,
+          "total_pnl": -389.8721136110832,
+          "total_volume": 45843.27469043408,
+          "win_rate": 0.4681669374585399,
+          "sharpe_ratio": -0.9583129064463473,
+          "max_drawdown": 0.23963654255922162
+        },
+        {
+          "agent_id": "ABIDES_Agent_11",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": 629.7879241917313,
+          "total_volume": 53029.63010926911,
+          "win_rate": 0.6373338062842187,
+          "sharpe_ratio": 0.2217379205520862,
+          "max_drawdown": 0.24723149286026924
+        }
+      ],
+      "market_metrics": {
+        "avg_spread": 0.032527696523110106,
+        "volatility": 0.19501052864622526,
+        "liquidity_score": 0.6854999447828304,
+        "market_efficiency": 0.7140973303518661,
+        "price_impact": 0.0037633044692940054
+      },
+      "error_count": 0,
+      "success": true
+    },
+    {
+      "scenario_name": "volatile_market_chaos",
+      "start_time": "2025-07-08 16:31:53.675842",
+      "end_time": "2025-07-08 16:31:53.723984",
+      "duration_seconds": 0.048142,
+      "total_trades": 42,
+      "total_volume": 359376.87299476063,
+      "total_pnl": 332.7753951960213,
+      "news_events_count": 5,
+      "agent_performances": [
+        {
+          "agent_id": "LLM_Agent_1",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": 222.88488942594108,
+          "total_volume": 23121.45659847455,
+          "win_rate": 0.506131267476653,
+          "sharpe_ratio": -0.5719346488870647,
+          "max_drawdown": 0.09281598524800255
+        },
+        {
+          "agent_id": "LLM_Agent_2",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": -759.4364043826462,
+          "total_volume": 13791.469157675743,
+          "win_rate": 0.3596967882042201,
+          "sharpe_ratio": -0.17333338617541771,
+          "max_drawdown": 0.1760772270572052
+        },
+        {
+          "agent_id": "LLM_Agent_3",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": 1263.9953264147657,
+          "total_volume": 46742.69542698578,
+          "win_rate": 0.6329745264790172,
+          "sharpe_ratio": 0.7762980266968542,
+          "max_drawdown": 0.05905808959501644
+        },
+        {
+          "agent_id": "LLM_Agent_4",
+          "agent_type": "LLM",
+          "total_trades": 1,
+          "total_pnl": 246.2146945583468,
+          "total_volume": 17693.32147979583,
+          "win_rate": 0.3722995101745246,
+          "sharpe_ratio": 0.07782993589538023,
+          "max_drawdown": 0.053911111202145756
+        },
+        {
+          "agent_id": "ABIDES_Agent_5",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -1774.087095727026,
+          "total_volume": 24173.25589286712,
+          "win_rate": 0.4085401433764729,
+          "sharpe_ratio": 1.5428634447342122,
+          "max_drawdown": 0.14462760289538862
+        },
+        {
+          "agent_id": "ABIDES_Agent_6",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -34.29520731337679,
+          "total_volume": 92245.38981586255,
+          "win_rate": 0.5035605797663913,
+          "sharpe_ratio": -0.680112861228186,
+          "max_drawdown": 0.19815836670622972
+        },
+        {
+          "agent_id": "ABIDES_Agent_7",
+          "agent_type": "ABIDES",
+          "total_trades": 5,
+          "total_pnl": -279.79687507460324,
+          "total_volume": 72700.5572855862,
+          "win_rate": 0.5202275380035934,
+          "sharpe_ratio": 1.1983513261701106,
+          "max_drawdown": 0.1665525453188152
+        },
+        {
+          "agent_id": "ABIDES_Agent_8",
+          "agent_type": "ABIDES",
+          "total_trades": 1,
+          "total_pnl": 163.7267638028778,
+          "total_volume": 80638.46345195315,
+          "win_rate": 0.3568889218227392,
+          "sharpe_ratio": 0.9873056987923077,
+          "max_drawdown": 0.22813030736561785
+        },
+        {
+          "agent_id": "ABIDES_Agent_9",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": -472.78842019709526,
+          "total_volume": 15269.22474254511,
+          "win_rate": 0.5480147462045096,
+          "sharpe_ratio": -0.2729140461028273,
+          "max_drawdown": 0.13637650730082002
+        },
+        {
+          "agent_id": "ABIDES_Agent_10",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": 282.4680587529496,
+          "total_volume": 16158.901827120317,
+          "win_rate": 0.35360977538003846,
+          "sharpe_ratio": 0.6415682689893487,
+          "max_drawdown": 0.1649428791608769
+        },
+        {
+          "agent_id": "ABIDES_Agent_11",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": -1094.0921113662998,
+          "total_volume": 13122.179391914513,
+          "win_rate": 0.3452061599815707,
+          "sharpe_ratio": 0.06408059089300644,
+          "max_drawdown": 0.16637045399903666
+        },
+        {
+          "agent_id": "ABIDES_Agent_12",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": -658.5930039079328,
+          "total_volume": 63884.054668983845,
+          "win_rate": 0.6272043861578207,
+          "sharpe_ratio": 1.9206000060525166,
+          "max_drawdown": 0.15621724560073247
+        },
+        {
+          "agent_id": "ABIDES_Agent_13",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": 47.10746138255157,
+          "total_volume": 59620.49597143131,
+          "win_rate": 0.334580489080576,
+          "sharpe_ratio": 1.691890313249555,
+          "max_drawdown": 0.09361766283535917
+        },
+        {
+          "agent_id": "ABIDES_Agent_14",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": -1877.236171131175,
+          "total_volume": 93588.65159475846,
+          "win_rate": 0.5853233119934802,
+          "sharpe_ratio": 1.2934920121900113,
+          "max_drawdown": 0.1049397132866315
+        },
+        {
+          "agent_id": "ABIDES_Agent_15",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -1224.0231285797242,
+          "total_volume": 56539.844263882704,
+          "win_rate": 0.5775142020556661,
+          "sharpe_ratio": 0.18732642519157605,
+          "max_drawdown": 0.1665961161599216
+        },
+        {
+          "agent_id": "ABIDES_Agent_16",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": 302.0362316628921,
+          "total_volume": 72643.29778700107,
+          "win_rate": 0.4862916876542006,
+          "sharpe_ratio": -0.5474775231038932,
+          "max_drawdown": 0.05650313274630721
+        },
+        {
+          "agent_id": "ABIDES_Agent_17",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": 1435.1429488713077,
+          "total_volume": 29411.563884185533,
+          "win_rate": 0.3898582049328656,
+          "sharpe_ratio": 0.6826683808464993,
+          "max_drawdown": 0.11162073941535676
+        },
+        {
+          "agent_id": "ABIDES_Agent_18",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": 617.959437007239,
+          "total_volume": 35330.75896337499,
+          "win_rate": 0.5110689583374199,
+          "sharpe_ratio": 1.8161203910464851,
+          "max_drawdown": 0.23019701395631964
+        },
+        {
+          "agent_id": "ABIDES_Agent_19",
+          "agent_type": "ABIDES",
+          "total_trades": 1,
+          "total_pnl": -421.15734044457105,
+          "total_volume": 25584.575659546375,
+          "win_rate": 0.6866357586356806,
+          "sharpe_ratio": 0.8573534247661168,
+          "max_drawdown": 0.191527497411353
+        }
+      ],
+      "market_metrics": {
+        "avg_spread": 0.027107842183349724,
+        "volatility": 0.399695973055186,
+        "liquidity_score": 0.8177029037629733,
+        "market_efficiency": 0.9039685436606245,
+        "price_impact": 0.0025646107247074505
+      },
+      "error_count": 0,
+      "success": true
+    },
+    {
+      "scenario_name": "large_scale_stress_test",
+      "start_time": "2025-07-08 16:31:55.725407",
+      "end_time": "2025-07-08 16:31:55.800537",
+      "duration_seconds": 0.07513,
+      "total_trades": 57,
+      "total_volume": 717106.8075915044,
+      "total_pnl": 938.247800771285,
+      "news_events_count": 1,
+      "agent_performances": [
+        {
+          "agent_id": "LLM_Agent_1",
+          "agent_type": "LLM",
+          "total_trades": 5,
+          "total_pnl": 973.2574970565194,
+          "total_volume": 70699.49651475855,
+          "win_rate": 0.3347670340551001,
+          "sharpe_ratio": 0.5437438431660768,
+          "max_drawdown": 0.11269617319643677
+        },
+        {
+          "agent_id": "LLM_Agent_2",
+          "agent_type": "LLM",
+          "total_trades": 2,
+          "total_pnl": -578.1917379503809,
+          "total_volume": 90372.84105678675,
+          "win_rate": 0.41944735531434013,
+          "sharpe_ratio": 0.12883350560873286,
+          "max_drawdown": 0.22702499735109455
+        },
+        {
+          "agent_id": "LLM_Agent_3",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": 1086.0171639558625,
+          "total_volume": 30414.241034096704,
+          "win_rate": 0.627230737080388,
+          "sharpe_ratio": -0.8855540931450948,
+          "max_drawdown": 0.12997040898183643
+        },
+        {
+          "agent_id": "LLM_Agent_4",
+          "agent_type": "LLM",
+          "total_trades": 4,
+          "total_pnl": -1106.0420806984691,
+          "total_volume": 82571.15208660673,
+          "win_rate": 0.4348273178120547,
+          "sharpe_ratio": -0.9528488078664163,
+          "max_drawdown": 0.09339206109558294
+        },
+        {
+          "agent_id": "LLM_Agent_5",
+          "agent_type": "LLM",
+          "total_trades": 1,
+          "total_pnl": 1145.0455037479196,
+          "total_volume": 99862.57345453305,
+          "win_rate": 0.3326775415122873,
+          "sharpe_ratio": 1.7166887759497573,
+          "max_drawdown": 0.19366182343802818
+        },
+        {
+          "agent_id": "LLM_Agent_6",
+          "agent_type": "LLM",
+          "total_trades": 6,
+          "total_pnl": -772.0583946177263,
+          "total_volume": 39370.42019998538,
+          "win_rate": 0.6179985523181261,
+          "sharpe_ratio": 0.7573978697357795,
+          "max_drawdown": 0.11518829209985876
+        },
+        {
+          "agent_id": "ABIDES_Agent_7",
+          "agent_type": "ABIDES",
+          "total_trades": 0,
+          "total_pnl": -1472.5044014212492,
+          "total_volume": 18825.288266071864,
+          "win_rate": 0.6043841077958036,
+          "sharpe_ratio": 0.3620537353795945,
+          "max_drawdown": 0.06994858002760543
+        },
+        {
+          "agent_id": "ABIDES_Agent_8",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": 1504.5967144523731,
+          "total_volume": 63782.02526417465,
+          "win_rate": 0.6596369373467865,
+          "sharpe_ratio": -0.46716836454948485,
+          "max_drawdown": 0.22683417459354893
+        },
+        {
+          "agent_id": "ABIDES_Agent_9",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": 1420.3993976448132,
+          "total_volume": 71495.58470292758,
+          "win_rate": 0.6619141090071168,
+          "sharpe_ratio": -0.5597493418738616,
+          "max_drawdown": 0.19320419743874845
+        },
+        {
+          "agent_id": "ABIDES_Agent_10",
+          "agent_type": "ABIDES",
+          "total_trades": 5,
+          "total_pnl": 2202.398018130403,
+          "total_volume": 32394.468099017624,
+          "win_rate": 0.4505298345093425,
+          "sharpe_ratio": 0.8236921051268238,
+          "max_drawdown": 0.0715531529184817
+        },
+        {
+          "agent_id": "ABIDES_Agent_11",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": -1341.5127327045204,
+          "total_volume": 53934.47261909579,
+          "win_rate": 0.5216771327044324,
+          "sharpe_ratio": 0.7162171352585256,
+          "max_drawdown": 0.0939417375540141
+        },
+        {
+          "agent_id": "ABIDES_Agent_12",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": 1137.5135447165785,
+          "total_volume": 57639.907933889044,
+          "win_rate": 0.5482442219930792,
+          "sharpe_ratio": -0.3602135738681487,
+          "max_drawdown": 0.09983507408397388
+        },
+        {
+          "agent_id": "ABIDES_Agent_13",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -2092.0587841512433,
+          "total_volume": 52836.05293324418,
+          "win_rate": 0.3551202506922522,
+          "sharpe_ratio": 0.7910822322030611,
+          "max_drawdown": 0.12179035442749825
+        },
+        {
+          "agent_id": "ABIDES_Agent_14",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -1711.5092011303586,
+          "total_volume": 45975.39819000602,
+          "win_rate": 0.6330741152294725,
+          "sharpe_ratio": 0.059321101032164814,
+          "max_drawdown": 0.10717179449326841
+        },
+        {
+          "agent_id": "ABIDES_Agent_15",
+          "agent_type": "ABIDES",
+          "total_trades": 1,
+          "total_pnl": 194.87502553928508,
+          "total_volume": 19002.96810413292,
+          "win_rate": 0.5342473566391113,
+          "sharpe_ratio": 1.685658824506616,
+          "max_drawdown": 0.13139068141070248
+        },
+        {
+          "agent_id": "ABIDES_Agent_16",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -168.4283718597762,
+          "total_volume": 48561.16376230093,
+          "win_rate": 0.5769322501970529,
+          "sharpe_ratio": 0.6942555319274972,
+          "max_drawdown": 0.16982550135137292
+        },
+        {
+          "agent_id": "ABIDES_Agent_17",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": 1640.1536778920108,
+          "total_volume": 56553.55838767056,
+          "win_rate": 0.6584850880399606,
+          "sharpe_ratio": 1.468752576593464,
+          "max_drawdown": 0.22394419588202524
+        },
+        {
+          "agent_id": "ABIDES_Agent_18",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": -644.5357662986361,
+          "total_volume": 60356.58558600264,
+          "win_rate": 0.4525011891789416,
+          "sharpe_ratio": -0.2170043132258781,
+          "max_drawdown": 0.20623294963787836
+        },
+        {
+          "agent_id": "ABIDES_Agent_19",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": -84.59878183335545,
+          "total_volume": 63125.95734280373,
+          "win_rate": 0.5704926303005817,
+          "sharpe_ratio": 1.972808818019522,
+          "max_drawdown": 0.07173522251645735
+        },
+        {
+          "agent_id": "ABIDES_Agent_20",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -452.42655992972914,
+          "total_volume": 74432.39575777802,
+          "win_rate": 0.6083822531863351,
+          "sharpe_ratio": 1.9912967132435209,
+          "max_drawdown": 0.23098192890838015
+        },
+        {
+          "agent_id": "ABIDES_Agent_21",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": 442.82345493030437,
+          "total_volume": 20619.636342540223,
+          "win_rate": 0.3900411084300168,
+          "sharpe_ratio": 1.648707574892994,
+          "max_drawdown": 0.24814413716481987
+        },
+        {
+          "agent_id": "ABIDES_Agent_22",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": -262.44914698229786,
+          "total_volume": 76406.25463607874,
+          "win_rate": 0.5489579319802079,
+          "sharpe_ratio": -0.31726373126223983,
+          "max_drawdown": 0.22599450130858278
+        },
+        {
+          "agent_id": "ABIDES_Agent_23",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": 284.19805288510395,
+          "total_volume": 89957.5172946228,
+          "win_rate": 0.44962425212525214,
+          "sharpe_ratio": 1.1873120646602553,
+          "max_drawdown": 0.1580930333938998
+        },
+        {
+          "agent_id": "ABIDES_Agent_24",
+          "agent_type": "ABIDES",
+          "total_trades": 5,
+          "total_pnl": -268.20359177444,
+          "total_volume": 99221.25199537046,
+          "win_rate": 0.5024694120168821,
+          "sharpe_ratio": 0.28661112262088984,
+          "max_drawdown": 0.11669906367964078
+        },
+        {
+          "agent_id": "ABIDES_Agent_25",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": 73.6919994027502,
+          "total_volume": 63019.92839945729,
+          "win_rate": 0.4856088328241316,
+          "sharpe_ratio": 1.3736761764618652,
+          "max_drawdown": 0.06484102921086876
+        },
+        {
+          "agent_id": "ABIDES_Agent_26",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": 88.29773764257175,
+          "total_volume": 49030.74031317708,
+          "win_rate": 0.4626502476545445,
+          "sharpe_ratio": 0.22755411893820088,
+          "max_drawdown": 0.14962411479513837
+        },
+        {
+          "agent_id": "ABIDES_Agent_27",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": -328.9801010344709,
+          "total_volume": 65108.7461093702,
+          "win_rate": 0.42706495310533,
+          "sharpe_ratio": 1.9619961762929123,
+          "max_drawdown": 0.21236037481903552
+        },
+        {
+          "agent_id": "ABIDES_Agent_28",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -136.11331912773787,
+          "total_volume": 45879.44319674844,
+          "win_rate": 0.567090023560202,
+          "sharpe_ratio": 0.04934249457543216,
+          "max_drawdown": 0.14803187239582083
+        },
+        {
+          "agent_id": "ABIDES_Agent_29",
+          "agent_type": "ABIDES",
+          "total_trades": 6,
+          "total_pnl": -923.8368103786065,
+          "total_volume": 55935.215872278844,
+          "win_rate": 0.40077277040952247,
+          "sharpe_ratio": 1.6860439055089356,
+          "max_drawdown": 0.22021394999680677
+        },
+        {
+          "agent_id": "ABIDES_Agent_30",
+          "agent_type": "ABIDES",
+          "total_trades": 5,
+          "total_pnl": -341.17613578465233,
+          "total_volume": 95544.51070218573,
+          "win_rate": 0.36460392270157493,
+          "sharpe_ratio": -0.7413429160804769,
+          "max_drawdown": 0.12268076220205178
+        },
+        {
+          "agent_id": "ABIDES_Agent_31",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": -1179.0117338414252,
+          "total_volume": 78515.93704688713,
+          "win_rate": 0.6615878974024154,
+          "sharpe_ratio": 0.4705745137609916,
+          "max_drawdown": 0.1773324475888174
+        }
+      ],
+      "market_metrics": {
+        "avg_spread": 0.025122022746943244,
+        "volatility": 0.3788331620929566,
+        "liquidity_score": 0.7196264984269248,
+        "market_efficiency": 0.9137427303933052,
+        "price_impact": 0.008270452279520744
+      },
+      "error_count": 0,
+      "success": true
+    },
+    {
+      "scenario_name": "llm_effectiveness_test",
+      "start_time": "2025-07-08 16:31:57.801913",
+      "end_time": "2025-07-08 16:31:57.832034",
+      "duration_seconds": 0.030121,
+      "total_trades": 25,
+      "total_volume": 815189.3307857611,
+      "total_pnl": -1045.900359758355,
+      "news_events_count": 3,
+      "agent_performances": [
+        {
+          "agent_id": "LLM_Agent_1",
+          "agent_type": "LLM",
+          "total_trades": 0,
+          "total_pnl": 178.09116696662798,
+          "total_volume": 76536.63384416308,
+          "win_rate": 0.45336829897476144,
+          "sharpe_ratio": -0.267225666007192,
+          "max_drawdown": 0.20153426038994554
+        },
+        {
+          "agent_id": "LLM_Agent_2",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": 136.47476568550508,
+          "total_volume": 85959.84765927611,
+          "win_rate": 0.4627397642690208,
+          "sharpe_ratio": -0.24324774236013735,
+          "max_drawdown": 0.10556772193932379
+        },
+        {
+          "agent_id": "LLM_Agent_3",
+          "agent_type": "LLM",
+          "total_trades": 3,
+          "total_pnl": 1153.0641184120968,
+          "total_volume": 72323.84061039865,
+          "win_rate": 0.6443237149691672,
+          "sharpe_ratio": 0.9270880043476415,
+          "max_drawdown": 0.060992124054220054
+        },
+        {
+          "agent_id": "LLM_Agent_4",
+          "agent_type": "LLM",
+          "total_trades": 4,
+          "total_pnl": -393.32471493169936,
+          "total_volume": 66691.37764693928,
+          "win_rate": 0.658557713963871,
+          "sharpe_ratio": 0.5873661054945887,
+          "max_drawdown": 0.205498196715319
+        },
+        {
+          "agent_id": "LLM_Agent_5",
+          "agent_type": "LLM",
+          "total_trades": 5,
+          "total_pnl": -1207.9437810050808,
+          "total_volume": 22110.02522901992,
+          "win_rate": 0.5647461238111815,
+          "sharpe_ratio": 0.849444098278449,
+          "max_drawdown": 0.05320494428209841
+        },
+        {
+          "agent_id": "ABIDES_Agent_6",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": -976.4377491512691,
+          "total_volume": 49840.69730430146,
+          "win_rate": 0.5105042615750855,
+          "sharpe_ratio": 1.5409427721071052,
+          "max_drawdown": 0.13151824206210166
+        },
+        {
+          "agent_id": "ABIDES_Agent_7",
+          "agent_type": "ABIDES",
+          "total_trades": 3,
+          "total_pnl": 36.98151966760334,
+          "total_volume": 54097.90732013007,
+          "win_rate": 0.43715719445997037,
+          "sharpe_ratio": 0.40219119633015943,
+          "max_drawdown": 0.23791974463036952
+        },
+        {
+          "agent_id": "ABIDES_Agent_8",
+          "agent_type": "ABIDES",
+          "total_trades": 8,
+          "total_pnl": -669.8447764900669,
+          "total_volume": 75206.76476750459,
+          "win_rate": 0.488899246459927,
+          "sharpe_ratio": 0.554665514133702,
+          "max_drawdown": 0.2382792029103391
+        },
+        {
+          "agent_id": "ABIDES_Agent_9",
+          "agent_type": "ABIDES",
+          "total_trades": 2,
+          "total_pnl": -486.474856497324,
+          "total_volume": 74630.21934891565,
+          "win_rate": 0.3739635171498299,
+          "sharpe_ratio": 1.504831393958908,
+          "max_drawdown": 0.07301200266462743
+        },
+        {
+          "agent_id": "ABIDES_Agent_10",
+          "agent_type": "ABIDES",
+          "total_trades": 4,
+          "total_pnl": -270.99103893584515,
+          "total_volume": 73558.37820543081,
+          "win_rate": 0.6338547750784227,
+          "sharpe_ratio": -0.19910367320785782,
+          "max_drawdown": 0.17770152042162496
+        }
+      ],
+      "market_metrics": {
+        "avg_spread": 0.016544742915082532,
+        "volatility": 0.36647187639496626,
+        "liquidity_score": 0.659740198178659,
+        "market_efficiency": 0.7546299703788558,
+        "price_impact": 0.009409287141053324
+      },
+      "error_count": 0,
+      "success": true
+    }
+  ],
+  "recommendations": [
+    "LLM agents show superior performance - consider increasing LLM agent allocation"
+  ]
+}
