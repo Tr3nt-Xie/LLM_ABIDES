@@ -1,0 +1,124 @@
+[
+  {
+    "name": "quick_smoke_test",
+    "description": "Fast validation of basic functionality",
+    "symbols": [
+      "AAPL",
+      "MSFT"
+    ],
+    "duration_hours": 0.01,
+    "market_regime": "stable",
+    "news_frequency": 1.0,
+    "llm_agents_count": 2,
+    "abides_agents_count": 5,
+    "real_time_factor": 1000.0,
+    "expected_outcomes": {
+      "min_trades": 5,
+      "max_errors": 2
+    }
+  },
+  {
+    "name": "bull_market_momentum",
+    "description": "Rising market with momentum strategies",
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+      "TSLA"
+    ],
+    "duration_hours": 0.1,
+    "market_regime": "bull",
+    "news_frequency": 0.3,
+    "llm_agents_count": 3,
+    "abides_agents_count": 10,
+    "real_time_factor": 200.0,
+    "expected_outcomes": {
+      "positive_pnl_ratio": 0.6,
+      "high_volume": true
+    }
+  },
+  {
+    "name": "bear_market_defensive",
+    "description": "Declining market with defensive strategies",
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "GOOGL"
+    ],
+    "duration_hours": 0.08,
+    "market_regime": "bear",
+    "news_frequency": 0.4,
+    "llm_agents_count": 3,
+    "abides_agents_count": 8,
+    "real_time_factor": 180.0,
+    "expected_outcomes": {
+      "negative_pnl_ratio": 0.4,
+      "high_volatility": true
+    }
+  },
+  {
+    "name": "volatile_market_chaos",
+    "description": "High volatility with mixed signals",
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "AMZN",
+      "GOOGL",
+      "TSLA",
+      "META"
+    ],
+    "duration_hours": 0.12,
+    "market_regime": "volatile",
+    "news_frequency": 0.8,
+    "llm_agents_count": 4,
+    "abides_agents_count": 15,
+    "real_time_factor": 150.0,
+    "expected_outcomes": {
+      "high_signal_count": true,
+      "mixed_pnl": true
+    }
+  },
+  {
+    "name": "large_scale_stress_test",
+    "description": "Stress test with many agents and symbols",
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "AMZN",
+      "GOOGL",
+      "TSLA",
+      "META",
+      "NVDA",
+      "NFLX"
+    ],
+    "duration_hours": 0.15,
+    "market_regime": "stable",
+    "news_frequency": 0.2,
+    "llm_agents_count": 6,
+    "abides_agents_count": 25,
+    "real_time_factor": 120.0,
+    "expected_outcomes": {
+      "scalability_test": true,
+      "stable_performance": true
+    }
+  },
+  {
+    "name": "llm_effectiveness_test",
+    "description": "Compare LLM-enhanced vs traditional agents",
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "GOOGL"
+    ],
+    "duration_hours": 0.1,
+    "market_regime": "stable",
+    "news_frequency": 0.5,
+    "llm_agents_count": 5,
+    "abides_agents_count": 5,
+    "real_time_factor": 200.0,
+    "expected_outcomes": {
+      "llm_advantage": true,
+      "performance_gap": 0.1
+    }
+  }
+]

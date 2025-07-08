@@ -40,6 +40,15 @@ try:
     FULL_SIMULATION_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Full simulation not available: {e}")
+    # Create mock classes for type hints
+    class RealisticMarketSimulation:
+        pass
+    class SimulationConfig:
+        pass
+    class NewsCategory:
+        pass
+    class EnhancedLLMInfluencedAgent:
+        pass
     FULL_SIMULATION_AVAILABLE = False
 
 @dataclass
@@ -737,7 +746,7 @@ class MultiRoundSimulationDemo:
                     abides_pnl.append(agent['total_pnl'])
         
         if llm_pnl and abides_pnl:
-            axes[1, 0].boxplot([llm_pnl, abides_pnl], labels=['LLM Agents', 'ABIDES Agents'])
+            axes[1, 0].boxplot([llm_pnl, abides_pnl], tick_labels=['LLM Agents', 'ABIDES Agents'])
             axes[1, 0].set_title('Agent Performance Comparison')
             axes[1, 0].set_ylabel('PnL per Agent ($)')
         
