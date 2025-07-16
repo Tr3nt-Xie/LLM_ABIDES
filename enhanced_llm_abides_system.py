@@ -183,6 +183,67 @@ class RealisticNewsGenerator:
                     "duration_range": (180, 600),
                     "sector_spillover": 0.9
                 }
+            ],
+            NewsCategory.COMPANY_SPECIFIC: [
+                {
+                    "template": "{symbol} announces new product launch expected to drive {trend} outlook",
+                    "sentiment_range": (-0.5, 0.7),
+                    "importance_range": (0.4, 0.8),
+                    "duration_range": (60, 300),
+                    "sector_spillover": 0.2
+                },
+                {
+                    "template": "{symbol} executive team reshuffle as CEO announces {direction} strategy",
+                    "sentiment_range": (-0.4, 0.5),
+                    "importance_range": (0.5, 0.7),
+                    "duration_range": (90, 360),
+                    "sector_spillover": 0.1
+                }
+            ],
+            NewsCategory.GEOPOLITICAL: [
+                {
+                    "template": "Trade tensions affect {symbol} international operations",
+                    "sentiment_range": (-0.6, -0.1),
+                    "importance_range": (0.6, 0.9),
+                    "duration_range": (180, 720),
+                    "sector_spillover": 0.7
+                }
+            ],
+            NewsCategory.TECHNICAL: [
+                {
+                    "template": "{symbol} breaks key technical resistance level at ${price}",
+                    "sentiment_range": (0.2, 0.6),
+                    "importance_range": (0.3, 0.6),
+                    "duration_range": (30, 120),
+                    "sector_spillover": 0.1
+                }
+            ],
+            NewsCategory.FDA_APPROVAL: [
+                {
+                    "template": "{symbol} receives FDA approval for {product} treatment",
+                    "sentiment_range": (0.6, 0.9),
+                    "importance_range": (0.7, 1.0),
+                    "duration_range": (120, 480),
+                    "sector_spillover": 0.4
+                }
+            ],
+            NewsCategory.ANALYST_UPGRADE: [
+                {
+                    "template": "Analyst upgrades {symbol} to {rating} with ${target} price target",
+                    "sentiment_range": (0.3, 0.7),
+                    "importance_range": (0.4, 0.7),
+                    "duration_range": (60, 240),
+                    "sector_spillover": 0.2
+                }
+            ],
+            NewsCategory.INSIDER_TRADING: [
+                {
+                    "template": "{symbol} insider sells {percentage}% stake in recent transaction",
+                    "sentiment_range": (-0.5, -0.1),
+                    "importance_range": (0.3, 0.6),
+                    "duration_range": (60, 180),
+                    "sector_spillover": 0.1
+                }
             ]
         }
     
@@ -279,6 +340,11 @@ class RealisticNewsGenerator:
         rate = random.choice([25, 50, 75, 100])
         action = random.choice(["raises", "cuts", "maintains"])
         target = random.choice(["competitor", "startup", "division"])
+        trend = random.choice(["strong", "weak", "mixed", "positive", "negative"])
+        direction = random.choice(["growth", "expansion", "restructuring", "innovation"])
+        price = round(random.uniform(50, 300), 2)
+        rating = random.choice(["BUY", "STRONG BUY", "HOLD", "SELL"])
+        product = random.choice(["cancer", "diabetes", "heart disease", "COVID-19"])
         
         return template.format(
             symbol=symbol,
@@ -287,7 +353,12 @@ class RealisticNewsGenerator:
             amount=amount,
             rate=rate,
             action=action,
-            target=target
+            target=target,
+            trend=trend,
+            direction=direction,
+            price=price,
+            rating=rating,
+            product=product
         )
     
     def _calculate_sector_impact(self, primary_symbol: str, spillover: float, 

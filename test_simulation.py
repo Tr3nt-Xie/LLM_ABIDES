@@ -89,7 +89,8 @@ def test_market_data_generation():
         market_gen = RealisticMarketDataGenerator(symbols)
         
         # Generate market data
-        market_data = market_gen.update_market_data()
+        market_update = market_gen.update_market_data()
+        market_data = market_update['symbols']  # Extract symbols data
         
         print(f"  📈 Generated market data for {len(market_data)} symbols:")
         for symbol, data in market_data.items():

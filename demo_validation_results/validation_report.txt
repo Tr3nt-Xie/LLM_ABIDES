@@ -1,0 +1,40 @@
+================================================================================
+ABIDES VALIDATION REPORT
+================================================================================
+
+OVERALL COMPLIANCE SCORE: 0.000
+SYMBOLS ANALYZED: 3
+
+STYLIZED FACTS COMPLIANCE:
+
+--------------------------------------------------
+SYMBOL: TEST1
+DATA POINTS: 2000
+  Return Distribution: ✓
+  Volatility Clustering: ✗
+  Heavy Tails: ✓
+  Return Autocorrelation: ✗
+  Volatility Persistence: ✓
+  Leverage Effect: ✗
+
+--------------------------------------------------
+SYMBOL: TEST2
+DATA POINTS: 2000
+  Return Distribution: ✓
+  Volatility Clustering: ✗
+  Heavy Tails: ✓
+  Return Autocorrelation: ✗
+  Volatility Persistence: ✓
+  Leverage Effect: ✗
+
+--------------------------------------------------
+SYMBOL: TEST3
+DATA POINTS: 2000
+  Return Distribution: ✓
+  Volatility Clustering: ✓
+  Heavy Tails: ✓
+  Return Autocorrelation: ✗
+  Volatility Persistence: ✓
+  Leverage Effect: ✗
+
+================================================================================
