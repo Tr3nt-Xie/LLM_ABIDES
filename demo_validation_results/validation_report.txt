@@ -9,7 +9,7 @@ STYLIZED FACTS COMPLIANCE:
 
 --------------------------------------------------
 SYMBOL: TEST1
-DATA POINTS: 2000
+DATA POINTS: 3000
   Return Distribution: ✓
   Volatility Clustering: ✗
   Heavy Tails: ✓
@@ -19,9 +19,9 @@ DATA POINTS: 2000
 
 --------------------------------------------------
 SYMBOL: TEST2
-DATA POINTS: 2000
+DATA POINTS: 3000
   Return Distribution: ✓
-  Volatility Clustering: ✗
+  Volatility Clustering: ✓
   Heavy Tails: ✓
   Return Autocorrelation: ✗
   Volatility Persistence: ✓
@@ -29,7 +29,7 @@ DATA POINTS: 2000
 
 --------------------------------------------------
 SYMBOL: TEST3
-DATA POINTS: 2000
+DATA POINTS: 3000
   Return Distribution: ✓
   Volatility Clustering: ✓
   Heavy Tails: ✓
