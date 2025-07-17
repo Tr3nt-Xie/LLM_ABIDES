@@ -1,0 +1,302 @@
+{
+  "validation_timestamp": "2025-07-16T07:52:26.201479",
+  "symbols_analyzed": [
+    "TEST1",
+    "TEST2",
+    "TEST3"
+  ],
+  "framework_version": "1.0",
+  "methodology": "ABIDES Paper Implementation",
+  "TEST1_stylized_facts": {
+    "symbol": "TEST1",
+    "data_points": 2000,
+    "time_period": {
+      "start": "2025-07-16T07:46:28.890505",
+      "end": "2025-07-16T08:08:56.634672"
+    },
+    "return_distribution": {
+      "normality_test": {
+        "statistic": 0.8503211494730558,
+        "p_value": 6.278991485550555e-40,
+        "is_normal": "False"
+      },
+      "skewness": 1.1759065055065236,
+      "excess_kurtosis": 0.644001337006229,
+      "mean_return": 0.34748837166533136,
+      "volatility": 1.0458223070622112,
+      "validation": {
+        "non_normal": "True",
+        "excess_kurtosis": "True",
+        "acceptable_skewness": "True"
+      }
+    },
+    "volatility_clustering": {
+      "autocorrelation_squared_returns": {
+        "lag_1": -0.07888846057116469,
+        "lag_5": -0.08180939201537255,
+        "lag_20": 0.8856603194448919
+      },
+      "clustering_present": "False",
+      "validation": {
+        "volatility_clustering": "False"
+      }
+    },
+    "heavy_tails": {
+      "excess_kurtosis": 0.644001337006229,
+      "tail_ratios": {
+        "2_std": 0.08204102051025512,
+        "3_std": 0.01950975487743872
+      },
+      "normal_expectations": {
+        "2_std": 0.04550026389635842,
+        "3_std": 0.002699796063260207
+      },
+      "validation": {
+        "heavy_tails": "False",
+        "fat_tails_2std": "True",
+        "fat_tails_3std": "True"
+      }
+    },
+    "return_autocorrelation": {
+      "autocorrelations": {
+        "lag_1": -0.7463435470714919,
+        "lag_5": -0.7429114939017035,
+        "lag_10": 0.976010254046952,
+        "lag_20": 0.9580984841084389
+      },
+      "significance_threshold": 0.04383789320257327,
+      "validation": {
+        "no_significant_autocorr": false
+      }
+    },
+    "volatility_persistence": {
+      "volatility_autocorrelations": {
+        "lag_1": 0.9994331830490217,
+        "lag_5": 0.9932248090747848,
+        "lag_10": 0.9792684895225869,
+        "lag_20": 0.9425827703340612,
+        "lag_50": 0.8311499106902996
+      },
+      "validation": {
+        "persistent_volatility": true
+      }
+    },
+    "leverage_effect": {
+      "return_volatility_correlation": -0.004191521356872436,
+      "validation": {
+        "leverage_effect": "False"
+      }
+    },
+    "microstructure": {
+      "microstructure_metrics": {
+        "spread_stats": {
+          "mean_spread": 0.01999999999999522,
+          "median_spread": 0.01999999999999602,
+          "spread_volatility": 1.3283498162354672e-14,
+          "relative_spread": 0.00019176685277286952
+        }
+      },
+      "validation": {
+        "sufficient_data": false
+      }
+    }
+  },
+  "TEST2_stylized_facts": {
+    "symbol": "TEST2",
+    "data_points": 2000,
+    "time_period": {
+      "start": "2025-07-16T07:46:33.255906",
+      "end": "2025-07-16T08:09:01.032648"
+    },
+    "return_distribution": {
+      "normality_test": {
+        "statistic": 0.8984474836952548,
+        "p_value": 1.8407909812734453e-34,
+        "is_normal": "False"
+      },
+      "skewness": 0.8496408084912641,
+      "excess_kurtosis": -0.14163610806348093,
+      "mean_return": 0.16259531131568197,
+      "volatility": 0.6407593505452709,
+      "validation": {
+        "non_normal": "True",
+        "excess_kurtosis": "False",
+        "acceptable_skewness": "True"
+      }
+    },
+    "volatility_clustering": {
+      "autocorrelation_squared_returns": {
+        "lag_1": 0.06163390069339627,
+        "lag_5": 0.056197857316357104,
+        "lag_20": 0.8595081138920663
+      },
+      "clustering_present": "False",
+      "validation": {
+        "volatility_clustering": "False"
+      }
+    },
+    "heavy_tails": {
+      "excess_kurtosis": -0.14163610806348093,
+      "tail_ratios": {
+        "2_std": 0.07003501750875438,
+        "3_std": 0.007003501750875438
+      },
+      "normal_expectations": {
+        "2_std": 0.04550026389635842,
+        "3_std": 0.002699796063260207
+      },
+      "validation": {
+        "heavy_tails": "False",
+        "fat_tails_2std": "True",
+        "fat_tails_3std": "True"
+      }
+    },
+    "return_autocorrelation": {
+      "autocorrelations": {
+        "lag_1": -0.8560385794077621,
+        "lag_5": -0.8464358290097781,
+        "lag_10": 0.9675530565731574,
+        "lag_20": 0.9360635427097891
+      },
+      "significance_threshold": 0.04383789320257327,
+      "validation": {
+        "no_significant_autocorr": false
+      }
+    },
+    "volatility_persistence": {
+      "volatility_autocorrelations": {
+        "lag_1": 0.9995833546068846,
+        "lag_5": 0.9936586280177927,
+        "lag_10": 0.9789809778162264,
+        "lag_20": 0.9335241584346624,
+        "lag_50": 0.7660855433465957
+      },
+      "validation": {
+        "persistent_volatility": true
+      }
+    },
+    "leverage_effect": {
+      "return_volatility_correlation": 0.009060917754470037,
+      "validation": {
+        "leverage_effect": "False"
+      }
+    },
+    "microstructure": {
+      "microstructure_metrics": {
+        "spread_stats": {
+          "mean_spread": 0.0199999999999974,
+          "median_spread": 0.01999999999999602,
+          "spread_volatility": 1.32475773578239e-14,
+          "relative_spread": 0.00021095179450078563
+        }
+      },
+      "validation": {
+        "sufficient_data": false
+      }
+    }
+  },
+  "TEST3_stylized_facts": {
+    "symbol": "TEST3",
+    "data_points": 2000,
+    "time_period": {
+      "start": "2025-07-16T07:46:36.408572",
+      "end": "2025-07-16T08:09:05.141329"
+    },
+    "return_distribution": {
+      "normality_test": {
+        "statistic": 0.921073759735199,
+        "p_value": 3.9106365173546463e-31,
+        "is_normal": "False"
+      },
+      "skewness": 0.7026457207375353,
+      "excess_kurtosis": -0.04934410547043999,
+      "mean_return": 0.04842254090358097,
+      "volatility": 0.3262111893183073,
+      "validation": {
+        "non_normal": "True",
+        "excess_kurtosis": "False",
+        "acceptable_skewness": "True"
+      }
+    },
+    "volatility_clustering": {
+      "autocorrelation_squared_returns": {
+        "lag_1": 0.44341444418405296,
+        "lag_5": 0.4267820489244667,
+        "lag_20": 0.8413227290050213
+      },
+      "clustering_present": "True",
+      "validation": {
+        "volatility_clustering": "True"
+      }
+    },
+    "heavy_tails": {
+      "excess_kurtosis": -0.04934410547043999,
+      "tail_ratios": {
+        "2_std": 0.0830415207603802,
+        "3_std": 0.0005002501250625312
+      },
+      "normal_expectations": {
+        "2_std": 0.04550026389635842,
+        "3_std": 0.002699796063260207
+      },
+      "validation": {
+        "heavy_tails": "False",
+        "fat_tails_2std": "True",
+        "fat_tails_3std": "False"
+      }
+    },
+    "return_autocorrelation": {
+      "autocorrelations": {
+        "lag_1": -0.9260888942477765,
+        "lag_5": -0.9151513549885568,
+        "lag_10": 0.9645605080481822,
+        "lag_20": 0.928919095211956
+      },
+      "significance_threshold": 0.04383789320257327,
+      "validation": {
+        "no_significant_autocorr": false
+      }
+    },
+    "volatility_persistence": {
+      "volatility_autocorrelations": {
+        "lag_1": 0.9996380684794745,
+        "lag_5": 0.9930795533061646,
+        "lag_10": 0.9755645021194769,
+        "lag_20": 0.9253586191659163,
+        "lag_50": 0.8147716672323339
+      },
+      "validation": {
+        "persistent_volatility": true
+      }
+    },
+    "leverage_effect": {
+      "return_volatility_correlation": 0.030832531416059007,
+      "validation": {
+        "leverage_effect": "False"
+      }
+    },
+    "microstructure": {
+      "microstructure_metrics": {
+        "spread_stats": {
+          "mean_spread": 0.020000000000008455,
+          "median_spread": 0.020000000000010232,
+          "spread_volatility": 6.103512198481319e-15,
+          "relative_spread": 0.0002273350382957617
+        }
+      },
+      "validation": {
+        "sufficient_data": false
+      }
+    }
+  },
+  "market_impact_analysis": {
+    "error": "No impact studies available"
+  },
+  "summary": {
+    "total_symbols": 3,
+    "stylized_facts_compliance": {},
+    "data_quality": {},
+    "market_realism": {},
+    "overall_compliance_score": 0
+  }
+}

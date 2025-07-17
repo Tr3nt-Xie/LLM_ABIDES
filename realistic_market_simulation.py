@@ -61,7 +61,13 @@ class RealisticMarketSimulation:
         # Core components
         self.news_generator = RealisticNewsGenerator(config.symbols)
         self.market_data_generator = RealisticMarketDataGenerator(config.symbols)
-        self.market_state = MarketState()
+        self.market_state = MarketState(
+            timestamp=self.simulation_start_time,
+            symbols={symbol: {'price': 100.0, 'volume': 0, 'bid': 99.95, 'ask': 100.05} 
+                    for symbol in config.symbols},
+            news_events=[],
+            market_conditions={'volatility': 0.02, 'liquidity': 1.0, 'sentiment': 0.0}
+        )
         
         # LLM components
         self.llm_news_analyzer = self._initialize_llm_analyzer()
