@@ -1,7 +1,7 @@
 scenario_name,success,duration_seconds,total_trades,total_volume,total_pnl,news_events,agent_count,market_regime,symbols_count,llm_agents,abides_agents
-quick_smoke_test,True,0.000718,19,225473.7022921409,125.52290872642972,1,7,stable,2,2,5
-bull_market_momentum,True,0.03012,19,589790.0991777807,-479.64407576258424,1,13,bull,4,3,10
-bear_market_defensive,True,0.026792,33,373908.0294516514,-25.68211092048192,1,11,bear,3,3,8
-volatile_market_chaos,True,0.048142,42,359376.87299476063,332.7753951960213,5,19,volatile,6,4,15
-large_scale_stress_test,True,0.07513,57,717106.8075915044,938.247800771285,1,31,stable,8,6,25
-llm_effectiveness_test,True,0.030121,25,815189.3307857611,-1045.900359758355,3,10,stable,3,5,5
+quick_smoke_test,True,0.000685,10,645030.6203006584,-1100.1349646144063,1,7,stable,2,2,5
+bull_market_momentum,True,0.030116,30,540861.8786780244,-1311.5920092570996,1,13,bull,4,3,10
+bear_market_defensive,True,0.026784,20,900699.2330529192,-597.2991455441393,1,11,bear,3,3,8
+volatile_market_chaos,True,0.04811,43,269106.58900878625,122.92213006761095,5,19,volatile,6,4,15
+large_scale_stress_test,True,0.075127,60,344667.7641592192,-130.1880823957302,1,31,stable,8,6,25
+llm_effectiveness_test,True,0.030157,17,300200.7603016057,713.4765385816672,3,10,stable,3,5,5
