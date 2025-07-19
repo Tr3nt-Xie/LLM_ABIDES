@@ -16,13 +16,22 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
-import autogen
+import os
 from abc import ABC, abstractmethod
 import threading
 import queue
 import time
 import sqlite3
 from pathlib import Path
+
+# Replace autogen with direct OpenAI API integration
+try:
+    import openai
+    from openai import OpenAI
+    LLM_AVAILABLE = True
+except ImportError:
+    LLM_AVAILABLE = False
+    print("Warning: OpenAI not available. LLM features will be mocked.")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +50,7 @@ class NewsCategory(Enum):
     FDA_APPROVAL = "fda_approval"
     ANALYST_UPGRADE = "analyst_upgrade"
     INSIDER_TRADING = "insider_trading"
+    PRODUCT_LAUNCH = "product_launch"
 
 
 class MarketSentiment(Enum):
@@ -98,777 +108,349 @@ class MarketSignal:
     signal_type: str  # 'momentum', 'mean_reversion', 'volatility', 'arbitrage'
     symbol: str
     strength: float  # -1 to 1
-    duration: int  # minutes
     confidence: float  # 0 to 1
-    source_agent: str
-    risk_level: str = "medium"  # low, medium, high
-    expected_return: float = 0.0
-    max_position: float = 0.1  # max % of portfolio
-    stop_loss: float = 0.05  # 5% stop loss
-    take_profit: float = 0.15  # 15% take profit
-    sector: str = "unknown"
+    reasoning: str
+    risk_level: str  # 'low', 'medium', 'high'
+    expected_duration: int  # minutes
+    target_price: Optional[float] = None
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
     
     def to_dict(self) -> Dict:
-        return asdict(self)
+        return {
+            'timestamp': self.timestamp.isoformat(),
+            'signal_type': self.signal_type,
+            'symbol': self.symbol,
+            'strength': self.strength,
+            'confidence': self.confidence,
+            'reasoning': self.reasoning,
+            'risk_level': self.risk_level,
+            'expected_duration': self.expected_duration,
+            'target_price': self.target_price,
+            'stop_loss': self.stop_loss,
+            'take_profit': self.take_profit
+        }
 
 
-class RealisticNewsGenerator:
-    """Enhanced news generator with sector correlation and realistic timing"""
+class LLMInterface:
+    """Interface for LLM API calls with fallback to mock responses"""
+    
+    def __init__(self):
+        self.client = None
+        if LLM_AVAILABLE:
+            api_key = os.getenv("OPENAI_API_KEY")
+            if api_key and api_key != "your-api-key-here":
+                try:
+                    self.client = OpenAI(api_key=api_key)
+                    logger.info("✅ OpenAI client initialized successfully")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize OpenAI client: {e}")
+                    self.client = None
+            else:
+                logger.warning("No valid OpenAI API key found")
+        
+        if not self.client:
+            logger.info("🤖 Using mock LLM responses")
+    
+    async def generate_response(self, system_prompt: str, user_prompt: str, 
+                               model: str = "gpt-4", max_tokens: int = 1000,
+                               temperature: float = 0.7) -> str:
+        """Generate LLM response with fallback to mock"""
+        if self.client:
+            try:
+                response = self.client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                logger.error(f"LLM API call failed: {e}")
+                return self._mock_response(user_prompt)
+        else:
+            return self._mock_response(user_prompt)
+    
+    def _mock_response(self, prompt: str) -> str:
+        """Generate mock responses for testing without API"""
+        if "news" in prompt.lower() and "sentiment" in prompt.lower():
+            return json.dumps({
+                "sentiment_score": random.uniform(-0.5, 0.5),
+                "confidence": random.uniform(0.6, 0.9),
+                "reasoning": "Mock analysis: Market sentiment appears mixed with moderate uncertainty.",
+                "key_factors": ["earnings", "market_conditions", "technical_indicators"]
+            })
+        elif "trading" in prompt.lower() and "signal" in prompt.lower():
+            return json.dumps({
+                "action": random.choice(["BUY", "SELL", "HOLD"]),
+                "strength": random.uniform(0.3, 0.8),
+                "confidence": random.uniform(0.5, 0.9),
+                "reasoning": "Mock trading signal based on technical analysis and market conditions.",
+                "risk_level": random.choice(["low", "medium", "high"])
+            })
+        else:
+            return "Mock LLM response generated for testing purposes."
+
+
+class EnhancedLLMNewsAnalyzer:
+    """LLM-powered news analyzer using OpenAI API"""
     
     def __init__(self, symbols: List[str]):
         self.symbols = symbols
-        self.sectors = self._initialize_sectors()
-        self.news_templates = self._load_enhanced_templates()
-        self.recent_events = []
-        self.market_cycle = "normal"  # bull, bear, normal, volatile
+        self.llm = LLMInterface()
+        self.analysis_history = []
         
-    def _initialize_sectors(self) -> Dict[str, str]:
-        """Map symbols to sectors for realistic correlation"""
-        sector_mapping = {
-            'AAPL': 'Technology',
-            'MSFT': 'Technology', 
-            'GOOGL': 'Technology',
-            'TSLA': 'Automotive',
-            'NVDA': 'Technology',
-            'JPM': 'Financial',
-            'BAC': 'Financial',
-            'JNJ': 'Healthcare',
-            'PFE': 'Healthcare',
-            'XOM': 'Energy'
-        }
-        return {symbol: sector_mapping.get(symbol, 'Other') for symbol in self.symbols}
+    async def analyze_news(self, news_event: NewsEvent) -> Dict[str, Any]:
+        """Analyze news event using LLM"""
+        system_prompt = """You are an expert financial analyst specializing in news sentiment analysis and market impact assessment. 
+        Your task is to analyze news events and provide structured insights about their potential market impact.
+        
+        You should consider:
+        - The sentiment (positive/negative/neutral) and its strength
+        - The potential impact on specific stocks or sectors
+        - The likely duration of the impact
+        - Risk factors and uncertainty levels
+        
+        Respond with a JSON object containing:
+        - sentiment_score: float between -1 (very negative) and 1 (very positive)
+        - confidence: float between 0 and 1
+        - reasoning: string explaining your analysis
+        - key_factors: list of key factors that influenced your analysis
+        - market_impact: string describing expected market impact
+        - risk_assessment: string describing potential risks"""
+        
+        user_prompt = f"""Analyze this news event:
+        
+        Headline: {news_event.headline}
+        Content: {news_event.content}
+        Category: {news_event.category.value}
+        Affected Symbols: {', '.join(news_event.affected_symbols)}
+        Source: {news_event.source}
+        
+        Please provide a comprehensive analysis of this news event's potential market impact."""
+        
+        try:
+            response = await self.llm.generate_response(system_prompt, user_prompt)
+            analysis = json.loads(response)
+            
+            # Store analysis
+            analysis_record = {
+                'timestamp': news_event.timestamp,
+                'news_id': id(news_event),
+                'analysis': analysis
+            }
+            self.analysis_history.append(analysis_record)
+            
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"News analysis failed: {e}")
+            # Fallback analysis
+            return {
+                'sentiment_score': random.uniform(-0.3, 0.3),
+                'confidence': 0.5,
+                'reasoning': 'Fallback analysis due to LLM error',
+                'key_factors': ['uncertainty'],
+                'market_impact': 'Uncertain impact',
+                'risk_assessment': 'High uncertainty due to analysis failure'
+            }
+
+
+class AdvancedLLMTradingAgent:
+    """Advanced trading agent using LLM for decision making"""
     
-    def _load_enhanced_templates(self) -> Dict[NewsCategory, List[Dict]]:
-        """Load enhanced news templates with realistic parameters"""
-        return {
+    def __init__(self, agent_id: str, strategy_type: str, initial_capital: float,
+                 symbols: List[str], risk_tolerance: float = 0.5):
+        self.agent_id = agent_id
+        self.strategy_type = strategy_type  # 'momentum', 'value', 'arbitrage', etc.
+        self.initial_capital = initial_capital
+        self.current_capital = initial_capital
+        self.symbols = symbols
+        self.risk_tolerance = risk_tolerance
+        self.llm = LLMInterface()
+        self.positions = {symbol: 0 for symbol in symbols}
+        self.trade_history = []
+        self.performance_metrics = {}
+        
+    async def generate_trading_signal(self, market_data: Dict, news_analysis: Dict = None) -> MarketSignal:
+        """Generate trading signal using LLM analysis"""
+        
+        system_prompt = f"""You are a professional {self.strategy_type} trader with expertise in quantitative analysis.
+        Your risk tolerance is {self.risk_tolerance} (0=very conservative, 1=very aggressive).
+        
+        You should analyze market data and generate trading signals based on your strategy:
+        - {self.strategy_type} strategy principles
+        - Current market conditions
+        - Risk management considerations
+        - Available news and sentiment data
+        
+        Respond with a JSON object containing:
+        - action: "BUY", "SELL", or "HOLD"
+        - symbol: the stock symbol to trade
+        - strength: float between 0 and 1 (signal strength)
+        - confidence: float between 0 and 1
+        - reasoning: detailed explanation of your decision
+        - risk_level: "low", "medium", or "high"
+        - position_size: recommended position size (as fraction of capital)
+        - stop_loss: optional stop loss price
+        - take_profit: optional take profit price"""
+        
+        # Prepare market data summary
+        market_summary = json.dumps(market_data, indent=2, default=str)
+        news_summary = json.dumps(news_analysis, indent=2) if news_analysis else "No recent news"
+        
+        user_prompt = f"""Current Market Data:
+        {market_summary}
+        
+        Recent News Analysis:
+        {news_summary}
+        
+        Current Positions: {self.positions}
+        Available Capital: ${self.current_capital:,.2f}
+        
+        Based on your {self.strategy_type} strategy and the above information, what trading action do you recommend?"""
+        
+        try:
+            response = await self.llm.generate_response(system_prompt, user_prompt)
+            
+            # Try to parse JSON, with fallback handling
+            try:
+                signal_data = json.loads(response)
+            except json.JSONDecodeError:
+                # If response isn't valid JSON, try to extract structured data
+                logger.warning(f"LLM response not valid JSON, using fallback parsing: {response[:100]}...")
+                signal_data = self._parse_unstructured_response(response)
+            
+            # Create MarketSignal object
+            signal = MarketSignal(
+                timestamp=datetime.now(),
+                signal_type=self.strategy_type,
+                symbol=signal_data.get('symbol', self.symbols[0]),
+                strength=signal_data.get('strength', 0.5),
+                confidence=signal_data.get('confidence', 0.5),
+                reasoning=signal_data.get('reasoning', 'LLM-generated signal'),
+                risk_level=signal_data.get('risk_level', 'medium'),
+                expected_duration=30,  # Default 30 minutes
+                stop_loss=signal_data.get('stop_loss'),
+                take_profit=signal_data.get('take_profit')
+            )
+            
+            return signal
+            
+        except Exception as e:
+            logger.error(f"Trading signal generation failed: {e}")
+            # Fallback signal
+            return MarketSignal(
+                timestamp=datetime.now(),
+                signal_type=self.strategy_type,
+                symbol=random.choice(self.symbols),
+                strength=random.uniform(0.3, 0.7),
+                confidence=0.5,
+                reasoning='Fallback signal due to LLM error',
+                risk_level='medium',
+                expected_duration=30
+            )
+    
+    def _parse_unstructured_response(self, response: str) -> Dict[str, Any]:
+        """Parse unstructured LLM response and extract trading signal data"""
+        signal_data = {
+            'symbol': self.symbols[0],
+            'strength': 0.5,
+            'confidence': 0.5,
+            'reasoning': response[:200] + "..." if len(response) > 200 else response,
+            'risk_level': 'medium'
+        }
+        
+        # Try to extract some information from text
+        if 'buy' in response.lower() or 'bullish' in response.lower():
+            signal_data['strength'] = 0.7
+        elif 'sell' in response.lower() or 'bearish' in response.lower():
+            signal_data['strength'] = 0.3
+            
+        if 'high confidence' in response.lower():
+            signal_data['confidence'] = 0.8
+        elif 'low confidence' in response.lower():
+            signal_data['confidence'] = 0.3
+            
+        return signal_data
+
+
+class RealisticNewsGenerator:
+    """Generate realistic market news events"""
+    
+    def __init__(self, symbols: List[str]):
+        self.symbols = symbols
+        self.news_templates = {
             NewsCategory.EARNINGS: [
-                {
-                    "template": "{symbol} reports Q{quarter} earnings beating expectations by {percentage}%",
-                    "sentiment_range": (0.3, 0.8),
-                    "importance_range": (0.6, 0.9),
-                    "duration_range": (30, 180),
-                    "sector_spillover": 0.3
-                },
-                {
-                    "template": "{symbol} misses earnings forecast, revenue down {percentage}%",
-                    "sentiment_range": (-0.8, -0.3),
-                    "importance_range": (0.5, 0.8),
-                    "duration_range": (60, 240),
-                    "sector_spillover": 0.4
-                }
+                "{company} reports Q{quarter} earnings of ${eps} per share, {beat_miss} estimates",
+                "{company} announces {direction} revenue growth in latest quarterly results",
+                "Analysts upgrade {company} following earnings beat"
             ],
             NewsCategory.MERGERS: [
-                {
-                    "template": "{symbol} announces ${amount}B acquisition of {target}",
-                    "sentiment_range": (0.2, 0.6),
-                    "importance_range": (0.7, 1.0),
-                    "duration_range": (120, 480),
-                    "sector_spillover": 0.5
-                }
-            ],
-            NewsCategory.REGULATORY: [
-                {
-                    "template": "SEC announces investigation into {symbol} trading practices",
-                    "sentiment_range": (-0.7, -0.2),
-                    "importance_range": (0.6, 0.9),
-                    "duration_range": (240, 720),
-                    "sector_spillover": 0.6
-                }
+                "{company} announces merger agreement with competitor in ${amount}B deal",
+                "Regulatory approval pending for {company} merger",
+                "{company} exploring strategic alternatives, sources say"
             ],
             NewsCategory.MACRO_ECONOMIC: [
-                {
-                    "template": "Federal Reserve {action} interest rates by {rate}bps",
-                    "sentiment_range": (-0.5, 0.5),
-                    "importance_range": (0.8, 1.0),
-                    "duration_range": (180, 600),
-                    "sector_spillover": 0.9
-                }
+                "Federal Reserve {action} interest rates by {amount} basis points",
+                "GDP growth {direction} to {rate}% in latest quarter",
+                "Inflation data shows {direction} trend, impacting market sentiment"
+            ],
+            NewsCategory.PRODUCT_LAUNCH: [
+                "{company} unveils revolutionary {product} technology",
+                "Innovation in {sector} drives mixed outlook for {company}",
+                "{company} announces breakthrough in {technology} development"
             ]
         }
     
-    def generate_realistic_event(self, category: NewsCategory = None, 
-                                forced_symbol: str = None) -> NewsEvent:
-        """Generate realistic news event with proper market dynamics"""
-        
+    def generate_news_event(self, category: NewsCategory = None, 
+                          affected_symbols: List[str] = None) -> NewsEvent:
+        """Generate a realistic news event"""
         if category is None:
-            # Weight categories by market cycle
-            weights = self._get_category_weights()
-            category = random.choices(list(weights.keys()), weights=list(weights.values()))[0]
+            category = random.choice(list(NewsCategory))
         
-        templates = self.news_templates[category]
-        template_data = random.choice(templates)
+        if affected_symbols is None:
+            affected_symbols = random.sample(self.symbols, 
+                                           random.randint(1, min(3, len(self.symbols))))
         
-        # Select symbol with sector correlation consideration
-        if forced_symbol:
-            symbol = forced_symbol
-        else:
-            symbol = self._select_symbol_with_correlation(category)
+        # Generate headline and content based on category
+        templates = self.news_templates.get(category, ["Market update affects {company}"])
+        template = random.choice(templates)
         
-        # Generate parameters
-        headline = self._generate_headline(template_data, symbol)
-        sentiment = random.uniform(*template_data["sentiment_range"])
-        importance = random.uniform(*template_data["importance_range"])
-        duration = random.randint(*template_data["duration_range"])
-        
-        # Calculate sector impact
-        sector_impact = self._calculate_sector_impact(
-            symbol, template_data["sector_spillover"], sentiment
+        # Fill in template variables
+        company = random.choice(affected_symbols) if affected_symbols else "Company"
+        headline = template.format(
+            company=company,
+            quarter=random.choice(['Q1', 'Q2', 'Q3', 'Q4']),
+            eps=f"{random.uniform(0.50, 3.00):.2f}",
+            beat_miss=random.choice(['beating', 'missing']),
+            direction=random.choice(['strong', 'weak', 'moderate']),
+            amount=f"{random.uniform(1.0, 50.0):.1f}",
+            action=random.choice(['raises', 'cuts', 'maintains']),
+            rate=f"{random.uniform(0.5, 4.0):.1f}",
+            product=random.choice(['smartphone', 'laptop', 'AI chip', 'software platform']),
+            sector=random.choice(['technology', 'healthcare', 'finance', 'automotive']),
+            technology=random.choice(['machine learning', 'quantum computing', 'blockchain'])
         )
         
-        # Determine affected symbols
-        affected_symbols = self._get_affected_symbols(symbol, sector_impact)
+        # Generate sentiment based on category and keywords
+        if any(word in headline.lower() for word in ['beats', 'strong', 'breakthrough', 'revolutionary']):
+            sentiment = random.uniform(0.2, 0.8)
+        elif any(word in headline.lower() for word in ['misses', 'weak', 'decline', 'regulatory']):
+            sentiment = random.uniform(-0.8, -0.2)
+        else:
+            sentiment = random.uniform(-0.5, 0.5)
         
         return NewsEvent(
             timestamp=datetime.now(),
             category=category,
             headline=headline,
-            content=f"Full story: {headline}. Market impact expected across {len(affected_symbols)} securities.",
+            content=f"Details about {headline.lower()}. Market analysts are monitoring the situation closely.",
             affected_symbols=affected_symbols,
             sentiment_score=sentiment,
-            importance=importance,
-            impact_duration=duration,
-            sector_impact=sector_impact,
-            confidence=random.uniform(0.7, 0.95)
+            importance=random.uniform(0.3, 1.0),
+            confidence=random.uniform(0.6, 0.9)
         )
-    
-    def _get_category_weights(self) -> Dict[NewsCategory, float]:
-        """Get category weights based on market cycle"""
-        base_weights = {
-            NewsCategory.EARNINGS: 0.25,
-            NewsCategory.COMPANY_SPECIFIC: 0.20,
-            NewsCategory.MACRO_ECONOMIC: 0.15,
-            NewsCategory.REGULATORY: 0.10,
-            NewsCategory.MERGERS: 0.10,
-            NewsCategory.TECHNICAL: 0.10,
-            NewsCategory.GEOPOLITICAL: 0.05,
-            NewsCategory.FDA_APPROVAL: 0.03,
-            NewsCategory.ANALYST_UPGRADE: 0.02
-        }
-        
-        # Adjust weights based on market cycle
-        if self.market_cycle == "volatile":
-            base_weights[NewsCategory.MACRO_ECONOMIC] *= 2
-            base_weights[NewsCategory.GEOPOLITICAL] *= 3
-        elif self.market_cycle == "bull":
-            base_weights[NewsCategory.EARNINGS] *= 1.5
-            base_weights[NewsCategory.MERGERS] *= 1.5
-        
-        return base_weights
-    
-    def _select_symbol_with_correlation(self, category: NewsCategory) -> str:
-        """Select symbol considering sector correlations"""
-        if category == NewsCategory.MACRO_ECONOMIC:
-            return random.choice(self.symbols)  # Macro affects all
-        
-        # Weight by recent event history to avoid clustering
-        weights = [1.0] * len(self.symbols)
-        for i, symbol in enumerate(self.symbols):
-            recent_count = sum(1 for event in self.recent_events[-10:] if symbol in event)
-            weights[i] = max(0.1, 1.0 - recent_count * 0.2)
-        
-        return random.choices(self.symbols, weights=weights)[0]
-    
-    def _generate_headline(self, template_data: Dict, symbol: str) -> str:
-        """Generate realistic headline from template"""
-        template = template_data["template"]
-        
-        # Generate realistic parameters
-        percentage = random.randint(1, 25)
-        quarter = random.randint(1, 4)
-        amount = random.randint(1, 100)
-        rate = random.choice([25, 50, 75, 100])
-        action = random.choice(["raises", "cuts", "maintains"])
-        target = random.choice(["competitor", "startup", "division"])
-        
-        return template.format(
-            symbol=symbol,
-            percentage=percentage,
-            quarter=quarter,
-            amount=amount,
-            rate=rate,
-            action=action,
-            target=target
-        )
-    
-    def _calculate_sector_impact(self, primary_symbol: str, spillover: float, 
-                                sentiment: float) -> Dict[str, float]:
-        """Calculate realistic sector spillover effects"""
-        sector_impact = {}
-        primary_sector = self.sectors[primary_symbol]
-        
-        for symbol, sector in self.sectors.items():
-            if sector == primary_sector:
-                # Same sector gets full impact
-                impact = sentiment * random.uniform(0.7, 1.0)
-            else:
-                # Cross-sector spillover
-                cross_sector_correlation = {
-                    ('Technology', 'Technology'): 0.8,
-                    ('Financial', 'Financial'): 0.7,
-                    ('Healthcare', 'Healthcare'): 0.6,
-                    ('Technology', 'Financial'): 0.3,
-                    ('Financial', 'Technology'): 0.3,
-                }
-                correlation = cross_sector_correlation.get((primary_sector, sector), 0.1)
-                impact = sentiment * spillover * correlation * random.uniform(0.5, 1.5)
-            
-            sector_impact[symbol] = max(-1.0, min(1.0, impact))
-        
-        return sector_impact
-    
-    def _get_affected_symbols(self, primary_symbol: str, 
-                             sector_impact: Dict[str, float]) -> List[str]:
-        """Determine which symbols are meaningfully affected"""
-        affected = [primary_symbol]  # Primary symbol always affected
-        
-        for symbol, impact in sector_impact.items():
-            if symbol != primary_symbol and abs(impact) > 0.1:
-                affected.append(symbol)
-        
-        return affected
-
-
-class EnhancedLLMNewsAnalyzer(autogen.ConversableAgent):
-    """Enhanced LLM news analyzer with multi-step reasoning and validation"""
-    
-    def __init__(self, name: str = "EnhancedNewsAnalyzer", **kwargs):
-        super().__init__(name, **kwargs)
-        self.analysis_history = []
-        self.market_context = {}
-        self.sector_knowledge = {}
-        
-    def analyze_news_comprehensive(self, news_event: NewsEvent, 
-                                 market_context: Dict = None) -> Dict[str, Any]:
-        """Comprehensive news analysis with market context"""
-        
-        if market_context:
-            self.market_context = market_context
-        
-        # Multi-step analysis prompt
-        analysis_prompt = self._create_analysis_prompt(news_event)
-        
-        try:
-            response = self.generate_reply([{"role": "user", "content": analysis_prompt}])
-            analysis = self._parse_comprehensive_response(response)
-            
-            # Validate and enhance analysis
-            analysis = self._validate_and_enhance_analysis(analysis, news_event)
-            
-            # Store for learning
-            analysis['news_event'] = news_event.to_dict()
-            analysis['timestamp'] = datetime.now().isoformat()
-            self.analysis_history.append(analysis)
-            
-            return analysis
-            
-        except Exception as e:
-            logger.error(f"Error in comprehensive news analysis: {e}")
-            return self._fallback_analysis(news_event)
-    
-    def _create_analysis_prompt(self, news_event: NewsEvent) -> str:
-        """Create comprehensive analysis prompt with market context"""
-        
-        market_context_str = ""
-        if self.market_context:
-            market_context_str = f"""
-            Current Market Context:
-            - Market volatility: {self.market_context.get('volatility', 'unknown')}
-            - Recent trend: {self.market_context.get('trend', 'unknown')}
-            - Trading volume: {self.market_context.get('volume', 'unknown')}
-            - Sector performance: {self.market_context.get('sector_performance', {})}
-            """
-        
-        return f"""
-        As a senior financial analyst, provide a comprehensive analysis of this news event:
-        
-        News Event:
-        - Headline: {news_event.headline}
-        - Category: {news_event.category.value}
-        - Content: {news_event.content}
-        - Affected Symbols: {', '.join(news_event.affected_symbols)}
-        - Initial Sentiment: {news_event.sentiment_score}
-        
-        {market_context_str}
-        
-        Please provide a detailed analysis in JSON format with these fields:
-        
-        1. "impact_assessment": {{
-            "immediate_impact": (1-10 scale),
-            "short_term_impact": (1-10 scale),  
-            "long_term_impact": (1-10 scale),
-            "market_wide_effect": (1-10 scale)
-        }}
-        
-        2. "price_predictions": {{
-            "direction": "up/down/neutral",
-            "magnitude_percent": (expected % change),
-            "confidence": (0-1),
-            "time_horizon": "immediate/hours/days/weeks"
-        }}
-        
-        3. "trading_signals": {{
-            "signal_type": "momentum/mean_reversion/volatility/arbitrage",
-            "signal_strength": (-1 to 1),
-            "risk_level": "low/medium/high",
-            "position_sizing": (0-1, max % of portfolio),
-            "stop_loss": (% below entry),
-            "take_profit": (% above entry)
-        }}
-        
-        4. "sector_analysis": {{
-            "primary_sector_impact": (sector name and impact -1 to 1),
-            "spillover_sectors": [list of affected sectors],
-            "correlation_strength": (0-1)
-        }}
-        
-        5. "risk_factors": [list of key risks]
-        
-        6. "confidence_factors": {{
-            "news_reliability": (0-1),
-            "market_timing": (0-1),
-            "sector_knowledge": (0-1),
-            "overall_confidence": (0-1)
-        }}
-        
-        7. "reasoning": "Detailed explanation of your analysis"
-        
-        Respond only with valid JSON.
-        """
-    
-    def _parse_comprehensive_response(self, response: str) -> Dict[str, Any]:
-        """Parse comprehensive LLM response with fallback handling"""
-        try:
-            # Extract JSON from response
-            start_idx = response.find('{')
-            end_idx = response.rfind('}') + 1
-            if start_idx != -1 and end_idx != -1:
-                json_str = response[start_idx:end_idx]
-                return json.loads(json_str)
-        except:
-            pass
-        
-        # Fallback parsing with regex/heuristics
-        return self._heuristic_parsing(response)
-    
-    def _heuristic_parsing(self, response: str) -> Dict[str, Any]:
-        """Heuristic parsing when JSON parsing fails"""
-        analysis = {
-            "impact_assessment": {
-                "immediate_impact": random.randint(4, 8),
-                "short_term_impact": random.randint(3, 7),
-                "long_term_impact": random.randint(2, 6),
-                "market_wide_effect": random.randint(2, 5)
-            },
-            "price_predictions": {
-                "direction": random.choice(["up", "down", "neutral"]),
-                "magnitude_percent": random.uniform(0.5, 5.0),
-                "confidence": random.uniform(0.5, 0.8),
-                "time_horizon": random.choice(["immediate", "hours", "days"])
-            },
-            "trading_signals": {
-                "signal_type": random.choice(["momentum", "mean_reversion", "volatility"]),
-                "signal_strength": random.uniform(-0.8, 0.8),
-                "risk_level": random.choice(["low", "medium", "high"]),
-                "position_sizing": random.uniform(0.05, 0.2),
-                "stop_loss": random.uniform(0.02, 0.1),
-                "take_profit": random.uniform(0.05, 0.3)
-            },
-            "reasoning": "Heuristic analysis due to parsing limitations"
-        }
-        return analysis
-    
-    def _validate_and_enhance_analysis(self, analysis: Dict, 
-                                     news_event: NewsEvent) -> Dict:
-        """Validate and enhance analysis with sanity checks"""
-        
-        # Sanity checks and corrections
-        if 'price_predictions' in analysis:
-            # Ensure magnitude is reasonable
-            magnitude = analysis['price_predictions'].get('magnitude_percent', 0)
-            if magnitude > 20:  # Cap at 20% for single news event
-                analysis['price_predictions']['magnitude_percent'] = 20
-            
-            # Ensure direction aligns with sentiment
-            direction = analysis['price_predictions'].get('direction', 'neutral')
-            if news_event.sentiment_score > 0.3 and direction == 'down':
-                analysis['price_predictions']['direction'] = 'up'
-            elif news_event.sentiment_score < -0.3 and direction == 'up':
-                analysis['price_predictions']['direction'] = 'down'
-        
-        # Add risk adjustments based on market conditions
-        if 'trading_signals' in analysis:
-            # Reduce position sizing in high volatility
-            volatility = self.market_context.get('volatility', 'medium')
-            if volatility == 'high':
-                current_sizing = analysis['trading_signals'].get('position_sizing', 0.1)
-                analysis['trading_signals']['position_sizing'] = current_sizing * 0.7
-        
-        return analysis
-    
-    def _fallback_analysis(self, news_event: NewsEvent) -> Dict[str, Any]:
-        """Fallback analysis when LLM fails"""
-        direction = 'up' if news_event.sentiment_score > 0 else 'down' if news_event.sentiment_score < 0 else 'neutral'
-        
-        return {
-            'impact_assessment': {
-                'immediate_impact': int(abs(news_event.sentiment_score) * 10),
-                'short_term_impact': int(abs(news_event.sentiment_score) * 8),
-                'long_term_impact': int(abs(news_event.sentiment_score) * 5),
-                'market_wide_effect': int(news_event.importance * 10)
-            },
-            'price_predictions': {
-                'direction': direction,
-                'magnitude_percent': abs(news_event.sentiment_score) * 5,
-                'confidence': news_event.confidence,
-                'time_horizon': 'hours'
-            },
-            'trading_signals': {
-                'signal_type': 'momentum',
-                'signal_strength': news_event.sentiment_score,
-                'risk_level': 'medium',
-                'position_sizing': min(0.2, abs(news_event.sentiment_score) * 0.3),
-                'stop_loss': 0.05,
-                'take_profit': 0.15
-            },
-            'reasoning': f'Fallback analysis based on sentiment: {news_event.sentiment_score}'
-        }
-
-
-class AdvancedLLMTradingAgent(autogen.ConversableAgent):
-    """Advanced LLM trading agent with sophisticated strategy and risk management"""
-    
-    def __init__(self, name: str, strategy: str, risk_tolerance: float = 0.5, 
-                 specialization: str = "generalist", **kwargs):
-        super().__init__(name, **kwargs)
-        self.strategy = strategy
-        self.risk_tolerance = risk_tolerance
-        self.specialization = specialization  # sector, news_type, or signal_type
-        
-        # Enhanced portfolio tracking
-        self.portfolio = {
-            'cash': 1000000,  # $1M starting capital
-            'positions': {},
-            'open_orders': {},
-            'trade_history': [],
-            'pnl_history': [],
-            'risk_metrics': {},
-            'performance_stats': {}
-        }
-        
-        # Strategy parameters
-        self.strategy_params = self._initialize_strategy_params()
-        
-        # Learning and adaptation
-        self.performance_tracker = PerformanceTracker()
-        self.market_memory = MarketMemory(capacity=1000)
-        
-    def _initialize_strategy_params(self) -> Dict:
-        """Initialize strategy-specific parameters"""
-        base_params = {
-            'max_position_size': 0.15,  # 15% of portfolio per position
-            'max_total_exposure': 0.8,   # 80% max total exposure
-            'stop_loss_pct': 0.05,       # 5% stop loss
-            'take_profit_pct': 0.20,     # 20% take profit
-            'min_confidence': 0.6,       # Minimum signal confidence
-            'position_decay': 0.95       # Daily position decay factor
-        }
-        
-        # Strategy-specific adjustments
-        strategy_adjustments = {
-            'momentum': {
-                'max_position_size': 0.20,
-                'stop_loss_pct': 0.03,
-                'min_confidence': 0.7
-            },
-            'value': {
-                'max_position_size': 0.25,
-                'stop_loss_pct': 0.08,
-                'take_profit_pct': 0.30,
-                'min_confidence': 0.5
-            },
-            'volatility': {
-                'max_position_size': 0.10,
-                'stop_loss_pct': 0.04,
-                'min_confidence': 0.8
-            },
-            'arbitrage': {
-                'max_position_size': 0.30,
-                'stop_loss_pct': 0.02,
-                'take_profit_pct': 0.10,
-                'min_confidence': 0.9
-            }
-        }
-        
-        if self.strategy in strategy_adjustments:
-            base_params.update(strategy_adjustments[self.strategy])
-        
-        # Risk tolerance adjustments
-        risk_multiplier = 0.5 + self.risk_tolerance
-        base_params['max_position_size'] *= risk_multiplier
-        base_params['max_total_exposure'] *= risk_multiplier
-        
-        return base_params
-    
-    def process_news_with_specialization(self, news_event: NewsEvent, 
-                                       analysis: Dict, market_data: Dict) -> List[MarketSignal]:
-        """Process news with agent specialization consideration"""
-        
-        # Check if this agent should respond to this news
-        if not self._should_respond_to_news(news_event):
-            return []
-        
-        # Generate base signals
-        signals = []
-        for symbol in news_event.affected_symbols:
-            if symbol in market_data:
-                signal = self._generate_enhanced_signal(symbol, analysis, news_event, market_data[symbol])
-                if signal and self._validate_signal(signal):
-                    signals.append(signal)
-        
-        return signals
-    
-    def _should_respond_to_news(self, news_event: NewsEvent) -> bool:
-        """Determine if agent should respond based on specialization"""
-        
-        # Specialization filters
-        if self.specialization.startswith('sector_'):
-            target_sector = self.specialization.replace('sector_', '')
-            # Only respond to news affecting this sector
-            return any(symbol for symbol in news_event.affected_symbols 
-                      if self._get_symbol_sector(symbol) == target_sector)
-        
-        elif self.specialization.startswith('news_'):
-            target_category = self.specialization.replace('news_', '')
-            return news_event.category.value == target_category
-        
-        elif self.specialization == 'high_frequency':
-            # Only respond to high-impact, short-duration news
-            return news_event.importance > 0.7 and news_event.impact_duration < 60
-        
-        elif self.specialization == 'fundamental':
-            # Focus on earnings, mergers, regulatory news
-            return news_event.category in [NewsCategory.EARNINGS, NewsCategory.MERGERS, NewsCategory.REGULATORY]
-        
-        # Generalist responds to all news
-        return True
-    
-    def _generate_enhanced_signal(self, symbol: str, analysis: Dict, 
-                                news_event: NewsEvent, market_data: Dict) -> Optional[MarketSignal]:
-        """Generate enhanced market signal with sophisticated logic"""
-        
-        # Extract analysis components
-        price_pred = analysis.get('price_predictions', {})
-        trading_signals = analysis.get('trading_signals', {})
-        impact_assessment = analysis.get('impact_assessment', {})
-        
-        # Calculate signal strength considering multiple factors
-        base_strength = trading_signals.get('signal_strength', 0)
-        confidence = analysis.get('confidence_factors', {}).get('overall_confidence', 0.5)
-        impact = impact_assessment.get('immediate_impact', 5) / 10.0
-        
-        # Apply strategy-specific adjustments
-        strength = self._apply_strategy_adjustments(base_strength, impact, market_data)
-        
-        # Determine signal type based on analysis and strategy
-        signal_type = self._determine_signal_type(analysis, market_data)
-        
-        # Calculate duration based on impact and news characteristics
-        base_duration = news_event.impact_duration
-        duration = int(base_duration * (0.5 + confidence))
-        
-        # Risk management parameters
-        risk_level = trading_signals.get('risk_level', 'medium')
-        position_sizing = min(
-            trading_signals.get('position_sizing', 0.1),
-            self.strategy_params['max_position_size']
-        )
-        
-        # Create signal
-        signal = MarketSignal(
-            timestamp=datetime.now(),
-            signal_type=signal_type,
-            symbol=symbol,
-            strength=strength,
-            duration=duration,
-            confidence=confidence,
-            source_agent=self.name,
-            risk_level=risk_level,
-            expected_return=price_pred.get('magnitude_percent', 0) / 100.0,
-            max_position=position_sizing,
-            stop_loss=trading_signals.get('stop_loss', self.strategy_params['stop_loss_pct']),
-            take_profit=trading_signals.get('take_profit', self.strategy_params['take_profit_pct']),
-            sector=self._get_symbol_sector(symbol)
-        )
-        
-        return signal
-    
-    def _apply_strategy_adjustments(self, base_strength: float, impact: float, 
-                                  market_data: Dict) -> float:
-        """Apply strategy-specific adjustments to signal strength"""
-        
-        strength = base_strength
-        
-        if self.strategy == 'momentum':
-            # Boost strength for trending markets
-            recent_returns = self._calculate_recent_returns(market_data)
-            if recent_returns and abs(recent_returns) > 0.02:
-                if (recent_returns > 0 and strength > 0) or (recent_returns < 0 and strength < 0):
-                    strength *= 1.3
-        
-        elif self.strategy == 'mean_reversion':
-            # Look for oversold/overbought conditions
-            volatility = self._calculate_volatility(market_data)
-            if volatility > 0.03:  # High volatility
-                strength *= 1.2
-        
-        elif self.strategy == 'volatility':
-            # Amplify strength during uncertain times
-            strength *= (1 + impact)
-        
-        # Apply risk tolerance
-        strength *= (0.5 + self.risk_tolerance)
-        
-        return max(-1.0, min(1.0, strength))
-    
-    def _determine_signal_type(self, analysis: Dict, market_data: Dict) -> str:
-        """Determine optimal signal type based on analysis and market conditions"""
-        
-        # Get suggested signal type from analysis
-        suggested_type = analysis.get('trading_signals', {}).get('signal_type', self.strategy)
-        
-        # Market condition adjustments
-        volatility = self._calculate_volatility(market_data)
-        
-        if volatility > 0.05:  # High volatility
-            return 'volatility'
-        elif volatility < 0.01:  # Low volatility
-            return 'momentum'
-        else:
-            return suggested_type
-    
-    def _validate_signal(self, signal: MarketSignal) -> bool:
-        """Validate signal meets agent's criteria"""
-        
-        # Minimum confidence check
-        if signal.confidence < self.strategy_params['min_confidence']:
-            return False
-        
-        # Strength threshold
-        if abs(signal.strength) < 0.1:
-            return False
-        
-        # Risk level compatibility
-        risk_tolerance_map = {'low': 0.3, 'medium': 0.6, 'high': 1.0}
-        if risk_tolerance_map.get(signal.risk_level, 0.5) > self.risk_tolerance + 0.2:
-            return False
-        
-        return True
-    
-    def _calculate_recent_returns(self, market_data: Dict) -> Optional[float]:
-        """Calculate recent returns from market data"""
-        # Placeholder - would use actual price history
-        current_price = market_data.get('price', 100)
-        return random.uniform(-0.05, 0.05)  # Mock recent return
-    
-    def _calculate_volatility(self, market_data: Dict) -> float:
-        """Calculate market volatility"""
-        # Placeholder - would use actual price history
-        spread = market_data.get('ask', 100) - market_data.get('bid', 99)
-        price = market_data.get('price', 100)
-        return spread / price if price > 0 else 0.02
-    
-    def _get_symbol_sector(self, symbol: str) -> str:
-        """Get sector for symbol"""
-        sector_map = {
-            'AAPL': 'Technology', 'MSFT': 'Technology', 'GOOGL': 'Technology',
-            'TSLA': 'Automotive', 'NVDA': 'Technology',
-            'JPM': 'Financial', 'BAC': 'Financial',
-            'JNJ': 'Healthcare', 'PFE': 'Healthcare'
-        }
-        return sector_map.get(symbol, 'Other')
-
-
-class PerformanceTracker:
-    """Track agent performance and learning"""
-    
-    def __init__(self):
-        self.trades = []
-        self.signals = []
-        self.performance_metrics = {}
-    
-    def record_trade(self, trade: Dict):
-        """Record trade execution"""
-        self.trades.append(trade)
-        self._update_metrics()
-    
-    def record_signal(self, signal: MarketSignal, outcome: Dict = None):
-        """Record signal and its outcome"""
-        signal_record = {
-            'signal': signal.to_dict(),
-            'outcome': outcome,
-            'timestamp': datetime.now()
-        }
-        self.signals.append(signal_record)
-    
-    def _update_metrics(self):
-        """Update performance metrics"""
-        if not self.trades:
-            return
-        
-        # Calculate basic metrics
-        total_pnl = sum(trade.get('pnl', 0) for trade in self.trades)
-        winning_trades = [t for t in self.trades if t.get('pnl', 0) > 0]
-        
-        self.performance_metrics = {
-            'total_pnl': total_pnl,
-            'num_trades': len(self.trades),
-            'win_rate': len(winning_trades) / len(self.trades),
-            'avg_trade_pnl': total_pnl / len(self.trades),
-            'sharpe_ratio': self._calculate_sharpe_ratio()
-        }
-    
-    def _calculate_sharpe_ratio(self) -> float:
-        """Calculate Sharpe ratio"""
-        if len(self.trades) < 2:
-            return 0.0
-        
-        returns = [trade.get('pnl', 0) for trade in self.trades]
-        mean_return = np.mean(returns)
-        std_return = np.std(returns)
-        
-        return mean_return / std_return if std_return > 0 else 0.0
-
-
-class MarketMemory:
-    """Store and retrieve market patterns for learning"""
-    
-    def __init__(self, capacity: int = 1000):
-        self.capacity = capacity
-        self.memories = []
-    
-    def store_pattern(self, pattern: Dict):
-        """Store market pattern"""
-        self.memories.append({
-            'pattern': pattern,
-            'timestamp': datetime.now()
-        })
-        
-        # Maintain capacity
-        if len(self.memories) > self.capacity:
-            self.memories = self.memories[-self.capacity:]
-    
-    def retrieve_similar_patterns(self, current_pattern: Dict, 
-                                 similarity_threshold: float = 0.7) -> List[Dict]:
-        """Retrieve similar historical patterns"""
-        # Simplified similarity matching
-        similar = []
-        for memory in self.memories:
-            if self._calculate_similarity(memory['pattern'], current_pattern) > similarity_threshold:
-                similar.append(memory)
-        
-        return similar[-10:]  # Return most recent similar patterns
-    
-    def _calculate_similarity(self, pattern1: Dict, pattern2: Dict) -> float:
-        """Calculate pattern similarity"""
-        # Simplified similarity calculation
-        return random.uniform(0.3, 0.9)  # Mock similarity score
