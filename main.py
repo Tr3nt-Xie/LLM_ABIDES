@@ -97,6 +97,91 @@ def run_experiments():
         print("Running demo with basic experimental features...")
         run_enhanced_demo()
 
+def run_scaled_data_generation():
+    """Run scaled order book data generation"""
+    print("📈 Order Book Data Scaling System")
+    print("=" * 45)
+    print("Scale up your order book data for:")
+    print("• Large-scale market analysis")
+    print("• Machine learning training datasets")
+    print("• High-frequency trading research")
+    print("• Market microstructure studies")
+    print()
+    
+    try:
+        sys.path.insert(0, "src")
+        import data_scaler
+        
+        # Show scaling options
+        print("Available scaling options:")
+        print("1. Light    - 10x scale, 5 symbols, 1 day")
+        print("2. Medium   - 100x scale, 10 symbols, 7 days")
+        print("3. Heavy    - 500x scale, 20 symbols, 30 days")
+        print("4. Custom   - Configure your own scaling")
+        print()
+        
+        choice = input("Select scaling option (1-4) [2]: ").strip()
+        
+        if choice == "1":
+            config = data_scaler.ScalingConfig(
+                scale_factor=10, num_symbols=5, days_to_simulate=1,
+                base_orders_per_minute=50, batch_size=1000
+            )
+        elif choice == "3":
+            config = data_scaler.ScalingConfig(
+                scale_factor=500, num_symbols=20, days_to_simulate=30,
+                base_orders_per_minute=200, batch_size=10000
+            )
+        elif choice == "4":
+            config = create_custom_scaling_config()
+        else:  # Default to medium
+            config = data_scaler.ScalingConfig(
+                scale_factor=100, num_symbols=10, days_to_simulate=7,
+                base_orders_per_minute=100, batch_size=5000
+            )
+        
+        estimated_orders = (config.scale_factor * config.base_orders_per_minute * 
+                          config.simulation_hours * 60 * config.days_to_simulate)
+        
+        print(f"\n📊 Configuration:")
+        print(f"  Scale Factor: {config.scale_factor}x")
+        print(f"  Symbols: {config.num_symbols}")
+        print(f"  Days: {config.days_to_simulate}")
+        print(f"  Estimated Orders: ~{estimated_orders:,}")
+        
+        confirm = input("\nProceed with scaling? (y/N): ").strip().lower()
+        if confirm == 'y':
+            scaler = data_scaler.DataScaler(config)
+            summary = scaler.scale_up_data()
+            scaler.print_summary(summary)
+        else:
+            print("Scaling cancelled.")
+        
+    except Exception as e:
+        print(f"⚠️  Data scaling error: {e}")
+        print("Please ensure all dependencies are installed.")
+
+def create_custom_scaling_config():
+    """Create custom scaling configuration"""
+    from src.data_scaler import ScalingConfig
+    
+    print("\n🔧 Custom Scaling Configuration")
+    try:
+        scale_factor = int(input("Scale factor (10-10000) [100]: ") or "100")
+        num_symbols = int(input("Number of symbols (1-100) [10]: ") or "10")
+        days = int(input("Simulation days (1-365) [7]: ") or "7")
+        orders_per_min = int(input("Base orders per minute (10-1000) [100]: ") or "100")
+        
+        return ScalingConfig(
+            scale_factor=scale_factor,
+            num_symbols=num_symbols,
+            days_to_simulate=days,
+            base_orders_per_minute=orders_per_min
+        )
+    except ValueError:
+        print("Invalid input, using default configuration")
+        return ScalingConfig()
+
 def test_config():
     """Test configuration"""
     print("🔧 Testing Configuration")
@@ -148,6 +233,7 @@ OPTIONS:
   --demo              Run basic demonstration
   --enhanced          Run enhanced demo with order book recording
   --experiments       Run ABIDES-style experiments suite
+  --scale-data        Run large-scale order book data generation
   --config            Test system configuration
   --help-extended     Show this help message
 
@@ -155,6 +241,7 @@ FEATURES:
   📊 Order Book Recording    Complete order flow and trade execution tracking
   📈 Market Analysis         Price impact, spread analysis, volume studies  
   🧪 ABIDES Experiments     Market impact, co-location, agent comparison
+  📈 Data Scaling           Generate massive datasets for research/ML
   🤖 LLM Integration        News analysis and intelligent trading decisions
   💾 Data Export            CSV/JSON export for external analysis
 
@@ -162,7 +249,14 @@ EXAMPLES:
   python main.py --demo                    # Basic demo
   python main.py --enhanced                # Enhanced demo with recording
   python main.py --experiments             # Full experiments suite
+  python main.py --scale-data              # Large-scale data generation
   python main.py --config                  # Test configuration
+
+SCALING OPTIONS:
+  Light:    10x scale, 5 symbols, 1 day     → ~24,000 orders
+  Medium:   100x scale, 10 symbols, 7 days  → ~3.4M orders
+  Heavy:    500x scale, 20 symbols, 30 days → ~72M orders
+  Custom:   Configure your own parameters
 """)
 
 def main():
@@ -171,6 +265,7 @@ def main():
     parser.add_argument("--demo", action="store_true", help="Run demonstration")
     parser.add_argument("--enhanced", action="store_true", help="Run enhanced demo with order book recording")
     parser.add_argument("--experiments", action="store_true", help="Run experiments suite")
+    parser.add_argument("--scale-data", action="store_true", help="Run large-scale data generation")
     parser.add_argument("--config", action="store_true", help="Test configuration")
     parser.add_argument("--help-extended", action="store_true", help="Show extended help")
     
@@ -186,6 +281,8 @@ def main():
         run_enhanced_demo()
     elif args.experiments:
         run_experiments()
+    elif args.scale_data:
+        run_scaled_data_generation()
     else:
         # Interactive mode
         print("🚀 ABIDES-LLM Integration")
@@ -194,12 +291,13 @@ def main():
         print("1. Basic Demo")
         print("2. Enhanced Demo (with Order Book Recording)")
         print("3. ABIDES Experiments Suite")
-        print("4. Test Configuration")
-        print("5. Show Help")
+        print("4. Large-Scale Data Generation")
+        print("5. Test Configuration")
+        print("6. Show Help")
         print()
         
         try:
-            choice = input("Enter choice (1-5): ").strip()
+            choice = input("Enter choice (1-6): ").strip()
             
             if choice == "1":
                 run_demo()
@@ -208,8 +306,10 @@ def main():
             elif choice == "3":
                 run_experiments()
             elif choice == "4":
-                test_config()
+                run_scaled_data_generation()
             elif choice == "5":
+                test_config()
+            elif choice == "6":
                 show_help()
             else:
                 print("Invalid choice. Running basic demo...")

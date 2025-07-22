@@ -167,6 +167,38 @@ The enhanced system provides comprehensive data export capabilities:
 # - *_news_analysis.csv: News sentiment and impact
 ```
 
+## 📈 Large-Scale Data Generation
+
+The system includes powerful scaling capabilities to generate massive order book datasets:
+
+### Scaling Presets
+- **Light**: 10x scale, 5 symbols, 1 day → ~24,000 orders
+- **Medium**: 100x scale, 10 symbols, 7 days → ~3.4M orders  
+- **Heavy**: 500x scale, 20 symbols, 30 days → ~72M orders
+- **Custom**: Configure your own parameters
+
+### Example Performance
+```bash
+# Medium preset generated:
+Total Orders: 33,605,484
+Duration: 5 minutes
+Orders/sec: 109,945
+Output: Compressed CSV files
+```
+
+### Usage
+```bash
+# Run large-scale data generation
+python main.py --scale-data
+
+# Select from presets or configure custom scaling
+# Outputs compressed CSV files with:
+# - Realistic order flow patterns
+# - Multiple agent types (retail, institutional, HFT, market makers)
+# - Intraday trading patterns
+# - Price movements with volatility clustering
+```
+
 ## 🤖 LLM Integration
 
 The system integrates LLMs in multiple ways:
