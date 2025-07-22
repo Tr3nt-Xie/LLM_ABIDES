@@ -109,7 +109,7 @@ The system integrates LLMs in multiple ways:
 
 ```
 🚀 ABIDES-LLM Integration Demo
-=================================
+===========================
 ⚠️  No OpenAI API key found (using mock LLM)
 LLM Enhancement: Mock Mode
 
@@ -119,21 +119,34 @@ LLM Enhancement: Mock Mode
 ✓ NeutralTrader initialized: neutral strategy, risk=0.4
 
 --- Event 1/3 ---
-📰 NEWS: Market update affects ABM
-   Category: mergers
-   Sentiment: -0.26
+📰 NEWS: Partnership announced for ambitious initiative
+   Category: product_launch
+   Sentiment: -0.72
    Symbols: ['ABM']
+[MomentumTrader] Generated signal: SELL 0.37
+[MomentumTrader] EXECUTED: SELL 1872 shares at $104.35
+[ContrarianTrader] Generated signal: BUY 0.22
+[ContrarianTrader] EXECUTED: BUY 1191 shares at $98.38
 
 📊 SIMULATION RESULTS
-=====================
+============================================================
 Events Processed: 3
-Total Signals Generated: 0
+Total Signals Generated: 9
 LLM Enhancement: Disabled
 
 Trader Performance:
-  MomentumTrader: $10,000,000.00 (0 trades)
-  ContrarianTrader: $10,000,000.00 (0 trades)
-  NeutralTrader: $10,000,000.00 (0 trades)
+  MomentumTrader:
+    Cash: $9,919,473.82
+    Shares: 5,800
+    Total Value: $10,499,473.82
+    P&L: $-526.18 (-0.01%)
+    Trades: 3
+  ContrarianTrader:
+    Cash: $10,048,415.76
+    Shares: 4,569
+    Total Value: $10,505,315.76
+    P&L: $5,315.76 (+0.05%)
+    Trades: 3
 ```
 
 ## 🔧 Configuration
