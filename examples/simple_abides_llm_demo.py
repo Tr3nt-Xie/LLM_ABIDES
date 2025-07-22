@@ -180,7 +180,7 @@ class SimpleLLMNewsAnalyzer(MockTradingAgent):
         return {
             'sentiment': news_event.sentiment_score,
             'impact_score': news_event.importance,
-            'confidence': 0.5,
+            'confidence': 0.6 + random.random() * 0.3,  # 0.6-0.9 confidence for better trading
             'reasoning': "Simple rule-based analysis",
             'price_direction': 'up' if news_event.sentiment_score > 0 else 'down',
             'magnitude_estimate': abs(news_event.sentiment_score) * 3
@@ -201,10 +201,11 @@ class SimpleLLMTradingAgent(MockTradingAgent):
         self.risk_tolerance = risk_tolerance
         self.llm_enabled = llm_enabled
         
-        # Portfolio state
-        self.holdings[symbol] = 0
-        self.portfolio_value = self.holdings["CASH"]
-        self.max_position_size = int(self.portfolio_value * 0.1)  # 10% max position
+        # Portfolio state - start with some shares for more realistic trading
+        initial_shares = 5000  # Start with 5000 shares (~$500k position)
+        self.holdings[symbol] = initial_shares
+        self.portfolio_value = self.holdings["CASH"] + (initial_shares * 100)  # Assume $100/share
+        self.max_position_size = int(self.portfolio_value * 0.05)  # 5% max position (reduced from 10%)
         
         # Trading history
         self.signals_received = []
@@ -241,7 +242,7 @@ class SimpleLLMTradingAgent(MockTradingAgent):
         impact = analysis['impact_score']
         
         # Check minimum confidence threshold
-        min_confidence = 0.6
+        min_confidence = 0.4  # Lowered from 0.6 to 0.4 to allow trading in demo mode
         if confidence < min_confidence:
             return None
         
@@ -492,11 +493,20 @@ class ABIDESLLMSimulation:
         
         print("\nTrader Performance:")
         for trader in self.traders:
-            portfolio_value = trader.holdings["CASH"] + (trader.holdings[trader.symbol] * 100)  # Assume $100/share
+            # Calculate portfolio value more accurately
+            current_price = 100  # Assume current price is $100/share
+            stock_value = trader.holdings[trader.symbol] * current_price
+            portfolio_value = trader.holdings["CASH"] + stock_value
+            initial_value = 10_000_000 + (5000 * 100)  # Initial portfolio value
+            pnl = portfolio_value - initial_value
+            pnl_pct = (pnl / initial_value) * 100
+            
             print(f"  {trader.name}:")
             print(f"    Cash: ${trader.holdings['CASH']:,.2f}")
-            print(f"    Shares: {trader.holdings[trader.symbol]}")
+            print(f"    Shares: {trader.holdings[trader.symbol]:,}")
+            print(f"    Stock Value: ${stock_value:,.2f}")
             print(f"    Total Value: ${portfolio_value:,.2f}")
+            print(f"    P&L: ${pnl:,.2f} ({pnl_pct:+.2f}%)")
             print(f"    Signals: {len(trader.signals_received)}")
             print(f"    Trades: {len(trader.trades_executed)}")
         
