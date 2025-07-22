@@ -11,6 +11,15 @@ A complete integration of **Large Language Models (LLM)** with **ABIDES** (Agent
 - **News-Driven Trading**: Agents react to market news with sophisticated reasoning
 - **Comprehensive Analytics**: Detailed performance tracking and visualization
 
+### 🆕 Enhanced Features
+
+- **📊 Complete Order Book Recording**: Full order flow tracking and trade execution logging
+- **🧪 ABIDES-Style Experiments**: Market impact studies, co-location analysis, agent validation
+- **📈 Market Microstructure Analysis**: Spread analysis, volume-price relationships, stylized facts
+- **💾 Comprehensive Data Export**: CSV/JSON export for external analysis and research
+- **⚡ Real-time Performance Tracking**: Live P&L, portfolio valuation, and risk metrics
+- **🔬 Experimental Framework**: Reproduce key experiments from the ABIDES research paper
+
 ## 📁 Project Structure
 
 ```
@@ -58,14 +67,20 @@ echo "OPENAI_API_KEY=your-openai-api-key-here" > .env
 ### 3. Run the Application
 
 ```bash
-# Run interactive demo
-python main.py
-
-# Run automated demo
+# Basic demo
 python main.py --demo
+
+# Enhanced demo with order book recording
+python main.py --enhanced
+
+# Full ABIDES experiments suite
+python main.py --experiments
 
 # Test configuration
 python main.py --config
+
+# Interactive mode (shows all options)
+python main.py
 ```
 
 ## 🎯 Usage Examples
@@ -75,15 +90,81 @@ python main.py --config
 python main.py --demo
 ```
 
+### Enhanced Demo with Order Book Recording
+```bash
+python main.py --enhanced
+```
+
+### ABIDES Experiments Suite
+```bash
+python main.py --experiments
+```
+
 ### Interactive Mode
 ```bash
 python main.py
-# Follow the interactive menu
+# Follow the interactive menu to select options
 ```
 
 ### Direct Example Execution
 ```bash
 python examples/simple_abides_llm_demo.py
+```
+
+## 🧪 Available Experiments
+
+The framework includes implementations of key ABIDES paper experiments:
+
+### Market Impact Study
+- Analyze how large orders affect market prices
+- Study relationship between order size and price impact
+- Generate event studies around impact trades
+
+### Co-location Benefits Analysis  
+- Examine trading advantages of low-latency connections
+- Compare performance across different latency configurations
+- Quantify the value of co-location in trading
+
+### Background Agent Validation
+- Validate that simulated agents produce realistic market behavior
+- Compare simulated vs. historical price movements
+- Analyze stylized facts (volatility clustering, fat tails, etc.)
+
+### LLM vs Traditional Agent Comparison
+- Compare performance of LLM-enhanced vs. algorithmic agents
+- Analyze strategy adaptation and news response capabilities
+- Study market efficiency implications
+
+## 📊 Data Export and Analysis
+
+The enhanced system provides comprehensive data export capabilities:
+
+### Order Book Data
+- Complete trade execution logs with timestamps
+- Order flow records with agent attribution
+- Market snapshots at regular intervals
+- Price impact analysis around significant trades
+
+### Agent Performance Data
+- Portfolio valuation over time
+- P&L tracking and risk metrics
+- Trading signal generation and execution
+- Strategy performance comparison
+
+### Market Microstructure Data
+- Bid-ask spread evolution
+- Volume-price relationships
+- Order book depth analysis
+- Stylized facts validation
+
+### Export Formats
+```bash
+# Data is automatically exported to CSV files:
+# - *_trades.csv: All executed trades
+# - *_orders.csv: Order history and status
+# - *_snapshots.csv: Order book snapshots
+# - *_agent_activity.csv: Agent decisions and performance
+# - *_news_analysis.csv: News sentiment and impact
 ```
 
 ## 🤖 LLM Integration
