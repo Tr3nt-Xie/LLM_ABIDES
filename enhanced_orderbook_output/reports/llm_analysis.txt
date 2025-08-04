@@ -1,0 +1,58 @@
+📊 ORDER BOOK QUALITY ANALYSIS REPORT
+============================================================
+
+🎯 EXECUTIVE SUMMARY
+------------------------------
+Overall Realism Score: 3.8/10
+Confidence Level: 16.5%
+
+Simulation shows 3.8/10 realism based on similarity scores and stylized facts compliance.
+
+📈 SIMILARITY TO REAL MARKETS
+------------------------------
+❌ Spread Similarity: 0.0%
+❌ Order Size Similarity: 22.4%
+❌ Market Impact Similarity: 0.0%
+⚠️ Fill Rate Realism: 43.7%
+❌ Overall Similarity: 16.5%
+
+📐 STYLIZED FACTS COMPLIANCE
+------------------------------
+✅ Fat Tails: Pass
+❌ Volatility Clustering: Fail
+❌ Mean Reversion: Fail
+✅ Positive Spreads: Pass
+✅ U Shaped Volume: Pass
+
+📊 KEY STATISTICS
+------------------------------
+Total Orders: 5,065
+Total Trades: 995
+Fill Rate: 19.6%
+Average Spread: 10.0 bps
+Average Market Impact: 7.34 bps
+
+🔬 MICROSTRUCTURE ANALYSIS
+------------------------------
+Order Flow Imbalance Ratio: 0.56
+Market Impact by Trade Size:
+  Small: 7.34 bps
+  Medium: nan bps
+  Large: nan bps
+
+💡 IMPROVEMENT RECOMMENDATIONS
+------------------------------
+1. Adjust bid-ask spread generation to match real market spreads more closely
+2. Calibrate order size distribution to better match real trading patterns
+3. Implement volatility clustering in price generation model
+
+🎯 REAL MARKET BENCHMARKS
+------------------------------
+Typical Spread: 5 bps
+Small Order Impact: 0.5 bps
+Small Orders: 70%
+Medium Orders: 25%
+Large Orders: 5%
+
+============================================================
+Report generated on 2025-08-04 01:42:19

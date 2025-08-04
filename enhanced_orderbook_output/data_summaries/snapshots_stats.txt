@@ -1,0 +1,16 @@
+Dataset: snapshots
+Shape: (840, 12)
+Columns: ['id', 'timestamp', 'symbol', 'best_bid', 'best_ask', 'bid_depth_json', 'ask_depth_json', 'spread', 'mid_price', 'last_trade_price', 'total_volume', 'volatility']
+
+Basic Statistics:
+               id            timestamp  ...  total_volume  volatility
+count  840.000000                  840  ...    840.000000  840.000000
+mean   420.500000  2024-01-02 12:59:30  ...  39246.839286    0.022500
+min      1.000000  2024-01-02 09:30:00  ...      0.000000    0.020000
+25%    210.750000  2024-01-02 11:14:45  ...  33531.000000    0.020000
+50%    420.500000  2024-01-02 12:59:30  ...  38650.000000    0.022500
+75%    630.250000  2024-01-02 14:44:15  ...  44555.000000    0.025000
+max    840.000000  2024-01-02 16:29:00  ...  80291.000000    0.025000
+std    242.631408                  NaN  ...  15574.626157    0.002501
+
+[8 rows x 9 columns]

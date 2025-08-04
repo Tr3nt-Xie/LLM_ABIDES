@@ -17,6 +17,13 @@ from enum import Enum
 from typing import Dict, List, Optional, Any
 import logging
 
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("Warning: python-dotenv not found. Environment variables from .env won't be loaded.")
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
