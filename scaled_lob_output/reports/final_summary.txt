@@ -1,0 +1,67 @@
+🎯 SCALED LOB DATA GENERATION - FINAL SUMMARY
+================================================================================
+
+⏱️ EXECUTION OVERVIEW
+----------------------------------------
+Start Time: 2025-08-04 02:17:47
+End Time: 2025-08-04 02:19:43
+Total Duration: 0:01:56.007607
+Status: ❌ FAILED
+
+⚙️ CONFIGURATION
+----------------------------------------
+Scale Factor: 10x
+Total Agents: 200
+Symbols: AAPL, GOOGL
+Simulation Days: 1
+Database Path: small_scale_lob.db
+Snapshot Frequency: 1000ms
+Max Depth Levels: 10
+
+📊 GENERATION RESULTS
+----------------------------------------
+Total Orders: 14,157
+Total Trades: 756
+Total Snapshots: 46,800
+Database Size: 74.7734375 MB
+Orders/Second: 122.1
+Fill Rate: 5.3%
+
+📈 DATABASE ANALYSIS
+----------------------------------------
+Order Records: 14,157
+Trade Records: 756
+Snapshot Records: 46,800
+
+Order Distribution by Symbol:
+  GOOGL: 7,169 orders
+  AAPL: 6,988 orders
+
+Order Distribution by Agent Type:
+  hft: 13,408 orders
+  market_maker: 549 orders
+  institutional: 117 orders
+  retail: 83 orders
+
+📁 OUTPUT FILES
+----------------------------------------
+Database: small_scale_lob.db
+Output Directory: /workspace/scaled_lob_output
+Reports: 0 generated
+
+⚡ PERFORMANCE INSIGHTS
+----------------------------------------
+Total Records Generated: 61,713
+Records per Second: 532.0
+Database Efficiency: 825 records/MB
+
+🎯 NEXT STEPS
+----------------------------------------
+1. Analyze the generated database using SQL queries
+2. Use the data for machine learning model training
+3. Implement additional market microstructure patterns
+4. Scale up further for production research datasets
+5. Compare with real market data for validation
+
+================================================================================
+Report generated on 2025-08-04 02:19:43
