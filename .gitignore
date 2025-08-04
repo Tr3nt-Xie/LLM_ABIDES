@@ -57,7 +57,7 @@ Thumbs.db
 
 # Output directories
 enhanced_orderbook_output/
-scaled_data/
+#scaled_data/
 output/
 results/
 
