@@ -19,6 +19,7 @@ A complete integration of **Large Language Models (LLM)** with **ABIDES** (Agent
 - **💾 Comprehensive Data Export**: CSV/JSON export for external analysis and research
 - **⚡ Real-time Performance Tracking**: Live P&L, portfolio valuation, and risk metrics
 - **🔬 Experimental Framework**: Reproduce key experiments from the ABIDES research paper
+- **🧭 Real-Market Validation**: Fetch real OHLCV/news via public APIs and compare simulation vs reality
 
 ## 📁 Project Structure
 
@@ -218,6 +219,51 @@ The system integrates LLMs in multiple ways:
 - Momentum traders, contrarian traders, neutral traders
 - Collaborative and competitive market dynamics
 
+## 🌐 Real-World Data Validation and News Ingestion
+
+The framework can ingest real market data and recent news to validate simulation quality against actual markets.
+
+### What it does
+- Fetches intraday OHLCV bars (e.g., 1-minute) for a symbol using `yfinance`
+- Optionally fetches recent news headlines for the symbol (publisher, title, link)
+- Aligns simulated trade timestamps to real market bars and computes error metrics
+
+### Metrics reported
+- Mean/median absolute price error in basis points (bps)
+- 95th percentile absolute error (bps)
+- Price bias (bps)
+
+### How to run (Enhanced Order Book system)
+```bash
+# Quick end-to-end run with real-data validation (default 6h UTC window)
+python enhanced_orderbook_main.py --config quick_test --no-llm \
+  --validate-real --val-symbol AAPL
+
+# With an explicit UTC time window (ISO-8601)
+python enhanced_orderbook_main.py --config quick_test --no-llm \
+  --validate-real --val-symbol AAPL \
+  --val-start 2024-01-02T13:30:00Z --val-end 2024-01-02T19:30:00Z \
+  --val-interval 1m
+```
+
+Outputs:
+- Validation report saved to `enhanced_orderbook_output/reports/real_validation.txt`
+- Contains summary metrics (mean/median/p95 abs error in bps, bias) comparing simulated trade prices vs real bars
+
+### Modules added
+- `src/real_data_ingestion.py`
+  - `fetch_intraday_ohlcv(cfg)`: fetches OHLCV bars via `yfinance`
+  - `fetch_recent_news(symbol)`: fetches recent news items for a symbol
+  - `align_simulation_with_real_market(sim_trades, real_ohlcv)`: aligns timestamps, computes price error (bps)
+  - `basic_validation_report(merged)`: summarizes error metrics
+  - `fetch_and_compare(symbol, sim_trades, start, end, interval)`: convenience wrapper
+- `src/llm_analysis_system.py`
+  - `LLMOrderBookAnalyzer.validate_against_real_market(...)`: internal helper used by the enhanced pipeline
+
+Notes:
+- Internet access is required for fetching real data
+- `yfinance` is installed via `requirements.txt`
+
 ## 📊 Sample Output
 
 ```
@@ -275,6 +321,7 @@ Trader Performance:
 - `matplotlib>=3.5.0` - Visualization
 - `openai>=1.0.0` - LLM integration
 - `python-dotenv>=0.20.0` - Environment management
+- `yfinance>=0.2.40` - Real market data (OHLCV/news) ingestion
 
 ### Optional Dependencies
 - `plotly>=5.10.0` - Advanced visualization
