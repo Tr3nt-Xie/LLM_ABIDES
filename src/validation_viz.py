@@ -84,6 +84,125 @@ def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out:
     plt.close(fig)
 
 
+def plot_spread_distribution(sim_snap: pd.DataFrame, out: Path, symbol: str) -> None:
+    if sim_snap.empty:
+        return
+    df = sim_snap.copy()
+    # prefer relative spread in bps if available
+    if 'relative_spread_bps' in df.columns:
+        x = df['relative_spread_bps'].dropna()
+        label = 'Relative Spread (bps)'
+    elif {'best_bid', 'best_ask'}.issubset(df.columns):
+        mid = (df['best_bid'] + df['best_ask']) / 2.0
+        x = ((df['best_ask'] - df['best_bid']) / mid * 10000).replace([np.inf, -np.inf], np.nan).dropna()
+        label = 'Relative Spread (bps)'
+    else:
+        return
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.hist(x, bins=50, alpha=0.85)
+    ax.set_title(f'Spread Distribution: {symbol}')
+    ax.set_xlabel(label)
+    ax.set_ylabel('Frequency')
+    ax.set_yscale('log')
+    fig.tight_layout()
+    fig.savefig(out / f"spread_distribution_{symbol}.png", dpi=120)
+    plt.close(fig)
+
+
+def plot_order_sign_acf(sim_trades: pd.DataFrame, out: Path, symbol: str) -> None:
+    if sim_trades.empty:
+        return
+    tr = sim_trades.copy()
+    tr['timestamp'] = pd.to_datetime(tr['timestamp'], utc=True, errors='coerce')
+    tr = tr.dropna(subset=['timestamp'])
+    # derive sign: +1 for buy aggressor, -1 for sell
+    if 'aggressor_side' in tr.columns:
+        tr['sign'] = tr['aggressor_side'].map({'BUY': 1, 'SELL': -1}).fillna(0)
+    elif 'side' in tr.columns:
+        tr['sign'] = tr['side'].map({'BUY': 1, 'SELL': -1}).fillna(0)
+    else:
+        return
+    sign = tr.sort_values('timestamp')['sign']
+    # simple ACF of order signs (first 50 lags)
+    lags = 50
+    s = sign.values.astype(float)
+    res = []
+    for k in range(1, lags + 1):
+        if len(s) > k:
+            res.append(np.corrcoef(s[:-k], s[k:])[0, 1])
+        else:
+            res.append(np.nan)
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.bar(range(1, lags + 1), res)
+    ax.set_title(f'Order Sign Autocorrelation: {symbol}')
+    ax.set_xlabel('Lag')
+    ax.set_ylabel('ACF')
+    fig.tight_layout()
+    fig.savefig(out / f"order_sign_acf_{symbol}.png", dpi=120)
+    plt.close(fig)
+
+
+def plot_market_impact_curve(sim_trades: pd.DataFrame, out: Path, symbol: str) -> None:
+    if sim_trades.empty:
+        return
+    tr = sim_trades.copy()
+    # bucket by trade size (quantity)
+    bins = [0, 100, 500, 1000, 5000, np.inf]
+    labels = ['<100', '100-500', '500-1k', '1k-5k', '>5k']
+    tr['size_bucket'] = pd.cut(tr['quantity'].astype(float), bins=bins, labels=labels)
+    # estimate temporary impact proxy: price move vs previous trade mid
+    tr = tr.sort_values('timestamp')
+    if 'price' not in tr.columns:
+        return
+    tr['prev_price'] = tr['price'].shift(1)
+    tr['impact_bps'] = ((tr['price'] - tr['prev_price']) / tr['prev_price'] * 10000).replace([np.inf, -np.inf], np.nan)
+    impact = tr.groupby('size_bucket')['impact_bps'].median().dropna()
+    fig, ax = plt.subplots(figsize=(8, 4))
+    impact.plot(kind='bar', ax=ax)
+    ax.set_title(f'Market Impact vs Trade Size: {symbol}')
+    ax.set_xlabel('Size bucket (shares)')
+    ax.set_ylabel('Median impact (bps)')
+    fig.tight_layout()
+    fig.savefig(out / f"market_impact_curve_{symbol}.png", dpi=120)
+    plt.close(fig)
+
+
+def plot_intraday_volatility(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str) -> None:
+    if sim_snap.empty or real_ohlcv.empty:
+        return
+    sim = sim_snap.copy()
+    sim['timestamp'] = pd.to_datetime(sim['timestamp'], utc=True, errors='coerce')
+    sim = sim.dropna(subset=['timestamp'])
+    if 'mid_price' in sim.columns:
+        s = sim['mid_price'].astype(float)
+    else:
+        s = ((sim.get('best_bid') + sim.get('best_ask')) / 2.0).astype(float)
+    sim_ret = np.log(s).diff().abs()
+    sim['hour'] = sim['timestamp'].dt.hour
+    sim_vol = sim.join(sim_ret.rename('abs_ret'))[['hour', 'abs_ret']].groupby('hour')['abs_ret'].mean()
+    sim_vol = sim_vol / sim_vol.mean() if sim_vol.mean() else sim_vol
+
+    ro = real_ohlcv.copy()
+    ro['timestamp'] = pd.to_datetime(ro['timestamp'], utc=True, errors='coerce')
+    ro = ro.dropna(subset=['timestamp'])
+    rr = np.log(ro['close'].astype(float)).diff().abs()
+    ro['hour'] = ro['timestamp'].dt.hour
+    real_vol = ro.join(rr.rename('abs_ret'))[['hour', 'abs_ret']].groupby('hour')['abs_ret'].mean()
+    real_vol = real_vol / real_vol.mean() if real_vol.mean() else real_vol
+
+    hours = sorted(set(sim_vol.index).union(real_vol.index))
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(hours, [sim_vol.get(h, np.nan) for h in hours], label='Sim vol (norm)', marker='o')
+    ax.plot(hours, [real_vol.get(h, np.nan) for h in hours], label='Real vol (norm)', marker='o')
+    ax.set_title(f"Intraday Volatility U-shape (normalized): {symbol}")
+    ax.set_xlabel('Hour (UTC)')
+    ax.set_ylabel('Abs return / mean')
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out / f"intraday_volatility_{symbol}.png", dpi=120)
+    plt.close(fig)
+
+
 def plot_return_distributions(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str) -> None:
     if sim_snap.empty or real_ohlcv.empty:
         return
@@ -200,6 +319,11 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
     plot_return_distributions(frames['snapshots'], real, out, symbol)
     plot_autocorrelations(frames['snapshots'], out, symbol)
     plot_intraday_volume(frames['trades'], real, out, symbol)
+    # Additional plots inspired by ABIDES papers
+    plot_spread_distribution(frames['snapshots'], out, symbol)
+    plot_order_sign_acf(frames['trades'], out, symbol)
+    plot_market_impact_curve(frames['trades'], out, symbol)
+    plot_intraday_volatility(frames['snapshots'], real, out, symbol)
     return {"sim": frames, "real": real}
 
 
