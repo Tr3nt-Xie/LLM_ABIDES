@@ -39,3 +39,4 @@ python-dotenv>=0.20.0
 
 # Optional visualization
 plotly>=5.10.0
+yfinance>=0.2.40

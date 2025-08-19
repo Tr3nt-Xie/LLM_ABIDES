@@ -26,6 +26,7 @@ except ImportError:
 from dataclasses import dataclass
 import io
 import base64
+from real_data_ingestion import fetch_and_compare
 
 # OpenAI integration
 try:
@@ -137,6 +138,19 @@ class LLMOrderBookAnalyzer:
         
         logger.info("✅ Order book analysis completed")
         return comparison
+
+    def validate_against_real_market(self, data_dict: Dict[str, pd.DataFrame], symbol: str,
+                                     start: datetime, end: datetime, interval: str = "1m") -> Dict[str, Any]:
+        """Fetch real OHLCV and compare simulated trades against it. Returns a validation package."""
+        trades_df = data_dict.get('trades', pd.DataFrame())
+        if trades_df.empty:
+            return {"error": "No simulated trades to compare"}
+        # Filter trades to symbol
+        sim_trades = trades_df[trades_df['symbol'] == symbol].copy()
+        if sim_trades.empty:
+            return {"error": f"No simulated trades for {symbol}"}
+        result = fetch_and_compare(symbol=symbol, sim_trades=sim_trades, start=start, end=end, interval=interval)
+        return result
     
     def _calculate_generated_stats(self, orders_df: pd.DataFrame, trades_df: pd.DataFrame, 
                                  snapshots_df: pd.DataFrame) -> Dict[str, Any]:
