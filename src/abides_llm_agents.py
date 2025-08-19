@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import random
 import json
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
@@ -125,17 +126,11 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
         self.analysis_history = []
         self.pending_news = []
         
-        # Initialize LLM if available
-        if HAS_LLM and llm_config:
-            try:
-                self.llm_analyzer = EnhancedLLMNewsAnalyzer(
-                    name=f"LLMAnalyzer_{id}",
-                    llm_config=llm_config
-                )
-            except Exception as e:
-                logger.warning(f"Failed to initialize LLM analyzer: {e}")
-                self.llm_analyzer = None
-        else:
+        # Initialize LLM analyzer if available in enhanced system
+        try:
+            self.llm_analyzer = EnhancedLLMNewsAnalyzer(self.symbols) if 'EnhancedLLMNewsAnalyzer' in globals() else None
+        except Exception as e:
+            logger.warning(f"Failed to initialize LLM analyzer: {e}")
             self.llm_analyzer = None
         
         # News generation for simulation
@@ -205,11 +200,31 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
     def processNewsEvent(self, currentTime, news_event):
         """Process a news event with LLM analysis"""
         try:
-            # Perform LLM analysis if available
+            # Perform LLM analysis if available (bridge async → sync)
             if self.llm_analyzer:
-                analysis = self.llm_analyzer.analyze_news_comprehensive(
-                    news_event, self.getMarketContext()
-                )
+                try:
+                    raw = asyncio.run(self.llm_analyzer.analyze_news(news_event))
+                except RuntimeError:
+                    # In case an event loop is already running, fall back to basic mapping
+                    raw = {
+                        'sentiment_score': getattr(news_event, 'sentiment_score', 0.0),
+                        'confidence': getattr(news_event, 'confidence', 0.5),
+                        'reasoning': 'Fallback (running loop)'
+                    }
+                sentiment = raw.get('sentiment_score', 0.0)
+                confidence = raw.get('confidence', 0.5)
+                analysis = {
+                    'sentiment': sentiment,
+                    'impact_assessment': {
+                        'immediate_impact': abs(sentiment) * 5,
+                        'confidence': confidence,
+                    },
+                    'price_predictions': {
+                        'direction': 'up' if sentiment > 0 else 'down',
+                        'magnitude_percent': abs(sentiment) * 2,
+                    },
+                    'reasoning': raw.get('reasoning', 'LLM analysis')
+                }
             else:
                 # Fallback analysis
                 analysis = self.createFallbackAnalysis(news_event)
