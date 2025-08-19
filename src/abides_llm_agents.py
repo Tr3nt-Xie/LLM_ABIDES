@@ -17,46 +17,74 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
+import importlib
 
-# ABIDES imports (these would come from official ABIDES installation)
+"""Attempt to import ABIDES Core modules from common locations.
+Order of preference:
+1) abides_core package (modern)
+2) legacy flat module paths used in some forks
+Falls back to minimal mocks for dev.
+"""
+
+TradingAgent = None
+Message = None
+util = None
+
+# Try modern abides_core
 try:
-    from agent.TradingAgent import TradingAgent
-    from message.Message import Message
-    from util import util
-    from util.OrderBook import OrderBook
-except ImportError:
-    # Fallback for when ABIDES is not installed
+    TradingAgent = importlib.import_module("abides_core.agent.trading_agent").TradingAgent
+    Message = importlib.import_module("abides_core.message.message").Message
+    util = importlib.import_module("abides_core.utils.util")
+except Exception:
+    pass
+
+# Try legacy flat paths
+if TradingAgent is None or Message is None or util is None:
+    try:
+        TradingAgent = importlib.import_module("agent.TradingAgent").TradingAgent
+        Message = importlib.import_module("message.Message").Message
+        util = importlib.import_module("util.util")
+    except Exception:
+        pass
+
+# Fallback minimal mocks
+if TradingAgent is None or Message is None or util is None:
     print("Warning: ABIDES not found. Creating mock classes for development.")
-    
-    class TradingAgent:
+
+    class TradingAgent:  # type: ignore
         def __init__(self, id, name, type, random_state=None, log_orders=False):
             self.id = id
             self.name = name
             self.type = type
             self.random_state = random_state or np.random.RandomState()
             self.log_orders = log_orders
-            self.holdings = {"CASH": 10000000}  # $10M starting cash
+            self.holdings = {"CASH": 10000000}
             self.orders = {}
             self.last_trade = {}
-            
+
         def receiveMessage(self, currentTime, msg):
             pass
-            
+
         def wakeup(self, currentTime):
             pass
-            
+
         def placeOrder(self, order):
             pass
-            
+
         def cancelOrder(self, order):
             pass
-    
-    class Message:
+
+        # Provide a no-op sendMessage compatible with ABIDES signature
+        def sendMessage(self, recipient_id, msg, broadcast=False):
+            # In real ABIDES this goes through the kernel; here we no-op for dev
+            return None
+
+    class Message:  # type: ignore
         def __init__(self, msg_type, body=None):
             self.msg_type = msg_type
             self.body = body or {}
 
-    class util:
+    class util:  # type: ignore
         @staticmethod
         def log_print(msg):
             print(msg)
