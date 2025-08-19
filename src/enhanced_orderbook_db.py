@@ -11,6 +11,7 @@ import sqlite3
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import uuid
 from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass, field, asdict
 from collections import defaultdict, deque
@@ -355,6 +356,8 @@ class EnhancedOrderBookDB:
         
         # Initialize runtime state first
         self.current_time = datetime(2024, 1, 2, 9, 30)  # Start of trading day
+        # Unique run identifier to ensure globally unique IDs across runs
+        self.run_id = uuid.uuid4().hex[:8]
         self.order_books = {symbol: {"bids": {}, "asks": {}} for symbol in config.symbols}
         self.last_trade_prices = config.initial_prices.copy()
         self.market_data = {symbol: {"volatility": 0.02, "spread": price * 0.001, "fair_value": price, "price_change": 0.0} 
@@ -617,9 +620,12 @@ class EnhancedOrderBookDB:
         # Determine quantity (minimum of both orders)
         quantity = min(buy_order["remaining_quantity"], sell_order["remaining_quantity"])
         
-        # Generate unique trade ID
+        # Generate unique trade ID (prefix with run_id to avoid collisions across runs)
         self.trade_counter += 1
-        trade_id = f"TRD_{buy_order['timestamp'].strftime('%Y%m%d_%H%M%S')}_{self.trade_counter:06d}"
+        trade_id = (
+            f"TRD_{self.run_id}_{buy_order['timestamp'].strftime('%Y%m%d_%H%M%S')}_"
+            f"{self.trade_counter:06d}"
+        )
         
         # Update market data
         symbol = buy_order["symbol"]
