@@ -896,9 +896,13 @@ class ScaledLOBGenerator:
 	def _simulate_trading_day(self, day_number: int):
 		"""Simulate one complete trading day with high granularity"""
 		
-		base_time = datetime(2024, 1, 2) + timedelta(days=day_number)
-		trading_start = base_time.replace(hour=9, minute=30, second=0, microsecond=0)
-		trading_end = base_time.replace(hour=16, minute=0, second=0, microsecond=0)
+		# Use today's date in UTC, mapped to US/Eastern trading hours for recency
+		now_utc = datetime.utcnow()
+		base_time = now_utc + timedelta(days=day_number)
+		# Keep times at 09:30-16:00 New York; in UTC this differs by DST.
+		# For simplicity, place hours at 13:30-20:00 UTC which matches NY DST period commonly.
+		trading_start = base_time.replace(hour=13, minute=30, second=0, microsecond=0)
+		trading_end = base_time.replace(hour=20, minute=0, second=0, microsecond=0)
 		
 		current_time = trading_start
 		

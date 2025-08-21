@@ -504,6 +504,13 @@ def main():
             # Pad by 30 minutes on each side
             start = (min_ts - pd.Timedelta(minutes=30)).to_pydatetime()
             end = (max_ts + pd.Timedelta(minutes=30)).to_pydatetime()
+            # Clamp to recent if the inferred window is too old for Yahoo 1m/5m
+            from datetime import timezone as _tz
+            now = datetime.now(_tz.utc)
+            if (now - pd.to_datetime(end, utc=True)).total_seconds() > 10 * 24 * 3600:
+                # Use a recent 6h window
+                end = now
+                start = end - timedelta(hours=6)
 
     generate_plots(args.db, args.symbol, start, end, args.outdir)
     print(f"✅ Plots saved to: {args.outdir}")
