@@ -14,7 +14,7 @@ import argparse
 import os
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, Optional
 
 import sqlite3
 import pandas as pd
@@ -104,6 +104,23 @@ def load_simulated_frames(db_path: str, symbol: str) -> Dict[str, pd.DataFrame]:
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     q = "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
     return pd.read_sql(q, conn, params=(name,)).shape[0] > 0
+
+
+def _infer_time_window_from_db(db_path: str, symbol: str) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
+	"""Infer min/max timestamps for a symbol from snapshots or trades in the DB."""
+	try:
+		conn = sqlite3.connect(db_path)
+		q1 = pd.read_sql(f"SELECT MIN(timestamp) as min_ts, MAX(timestamp) as max_ts FROM orderbook_snapshots WHERE symbol='{symbol}'", conn)
+		min_ts = pd.to_datetime(q1['min_ts'].iloc[0], utc=True) if not q1.empty else None
+		max_ts = pd.to_datetime(q1['max_ts'].iloc[0], utc=True) if not q1.empty else None
+		if min_ts is None or pd.isna(min_ts):
+			q2 = pd.read_sql(f"SELECT MIN(timestamp) as min_ts, MAX(timestamp) as max_ts FROM trades WHERE symbol='{symbol}'", conn)
+			min_ts = pd.to_datetime(q2['min_ts'].iloc[0], utc=True) if not q2.empty else None
+			max_ts = pd.to_datetime(q2['max_ts'].iloc[0], utc=True) if not q2.empty else None
+		conn.close()
+		return (min_ts, max_ts)
+	except Exception:
+		return (None, None)
 
 
 def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str) -> None:
@@ -410,16 +427,24 @@ def main():
     p.add_argument('--db', required=True, help='Path to SQLite DB (enhanced orderbook)')
     p.add_argument('--symbol', required=True, help='Symbol to analyze (e.g., AAPL)')
     p.add_argument('--outdir', default='validation_plots', help='Directory to save plots')
-    p.add_argument('--val-start', default=None, help='UTC ISO start (default: now-6h)')
-    p.add_argument('--val-end', default=None, help='UTC ISO end (default: now)')
+    p.add_argument('--val-start', default=None, help='UTC ISO start (default: infer from DB)')
+    p.add_argument('--val-end', default=None, help='UTC ISO end (default: infer from DB)')
     args = p.parse_args()
 
     if args.val_start and args.val_end:
         start = pd.to_datetime(args.val_start, utc=True)
         end = pd.to_datetime(args.val_end, utc=True)
     else:
-        end = datetime.now(timezone.utc)
-        start = end - timedelta(hours=6)
+        min_ts, max_ts = _infer_time_window_from_db(args.db, args.symbol)
+        if min_ts is None or max_ts is None or pd.isna(min_ts) or pd.isna(max_ts):
+            # Fallback: last 6h
+            from datetime import timezone
+            end = datetime.now(timezone.utc)
+            start = end - timedelta(hours=6)
+        else:
+            # Pad by 30 minutes on each side
+            start = (min_ts - pd.Timedelta(minutes=30)).to_pydatetime()
+            end = (max_ts + pd.Timedelta(minutes=30)).to_pydatetime()
 
     generate_plots(args.db, args.symbol, start, end, args.outdir)
     print(f"✅ Plots saved to: {args.outdir}")
