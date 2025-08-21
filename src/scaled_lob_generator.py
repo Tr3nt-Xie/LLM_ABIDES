@@ -88,7 +88,7 @@ class DetailedTradeDB(Base):
 	"""Enhanced trade table with market impact details"""
 	__tablename__ = 'detailed_trades'
 	
-	id = Column(Integer, primary key=True, autoincrement=True)
+	id = Column(Integer, primary_key=True, autoincrement=True)
 	trade_id = Column(String(50), unique=True, nullable=False, index=True)
 	timestamp = Column(DateTime, nullable=False, index=True)
 	microsecond = Column(Integer, default=0)
@@ -755,8 +755,8 @@ class ScaledLOBGenerator:
 			
 			# Initialize order book
 			self.order_books[symbol] = {
-				"bids": defaultdict(list),  # price -> list of orders
-				"asks": defaultdict(list),
+				"bids": defaultdict(deque),  # price -> FIFO queue of orders
+				"asks": defaultdict(deque),
 				"bid_prices": [],
 				"ask_prices": []
 			}
@@ -843,7 +843,8 @@ class ScaledLOBGenerator:
 				orders_today += len(minute_orders)
 				
 				# Update order book state
-				self._update_order_books(minute_orders, new_trades)
+				# (book is already updated during matching)
+				pass
 			
 			# Take detailed snapshots
 			if current_time.microsecond % (self.config.snapshot_frequency_ms * 1000) == 0:
@@ -938,241 +939,244 @@ class ScaledLOBGenerator:
 		
 		return orders
 	
+	def _add_limit_order_to_book(self, symbol: str, order: Dict):
+		book = self.order_books[symbol]
+		price = order['price']
+		if order['side'] == 'BUY':
+			book['bids'][price].append(order)
+			if price not in book['bid_prices']:
+				book['bid_prices'].append(price)
+				book['bid_prices'].sort(reverse=True)
+		else:
+			book['asks'][price].append(order)
+			if price not in book['ask_prices']:
+				book['ask_prices'].append(price)
+				book['ask_prices'].sort()
+	
+	def _best_bid(self, symbol: str) -> Optional[float]:
+		prices = self.order_books[symbol]['bid_prices']
+		return prices[0] if prices else None
+	
+	def _best_ask(self, symbol: str) -> Optional[float]:
+		prices = self.order_books[symbol]['ask_prices']
+		return prices[0] if prices else None
+	
+	def _remove_empty_price_level(self, symbol: str, side: str, price: float):
+		book = self.order_books[symbol]
+		lvl = book['bids'] if side == 'BUY' else book['asks']
+		plist = book['bid_prices'] if side == 'BUY' else book['ask_prices']
+		if not lvl[price]:
+			# remove
+			try:
+				plist.remove(price)
+			except ValueError:
+				pass
+	
+	def _process_incoming_order(self, symbol: str, incoming: Dict, current_time: datetime, session: Session) -> List[Dict]:
+		"""Match incoming order against the book using price–time priority; add remainder if limit."""
+		trades: List[Dict] = []
+		book = self.order_books[symbol]
+		state = self.market_state[symbol]
+		remaining = incoming['remaining_quantity']
+		buy = incoming['side'] == 'BUY'
+		
+		def top_opposite_price() -> Optional[float]:
+			return self._best_ask(symbol) if buy else self._best_bid(symbol)
+		
+		def crosses(price: float) -> bool:
+			top = top_opposite_price()
+			if top is None:
+				return False
+			return price >= top if buy else price <= top
+		
+		# Determine if market or crossing
+		price = incoming['price']
+		while remaining > 0:
+			opp_price = top_opposite_price()
+			if opp_price is None:
+				break
+			if incoming['order_type'] == 'LIMIT' and not crosses(price):
+				break
+			# Match against best opposite queue
+			opp_lvl = book['asks'] if buy else book['bids']
+			queue = opp_lvl[opp_price]
+			if not queue:
+				self._remove_empty_price_level(symbol, 'SELL' if buy else 'BUY', opp_price)
+				continue
+			rest = queue[0]
+			match_qty = min(remaining, rest['remaining_quantity'])
+			exec_price = opp_price if incoming['order_type'] == 'LIMIT' else opp_price
+			# Pre-trade mid/spread
+			bb = self._best_bid(symbol)
+			ba = self._best_ask(symbol)
+			pre_mid = (bb + ba) / 2.0 if (bb is not None and ba is not None) else exec_price
+			pre_spread = (ba - bb) if (bb is not None and ba is not None) else 0.0
+			# Update quantities
+			remaining -= match_qty
+			rest['remaining_quantity'] -= match_qty
+			# Remove fully filled resting
+			if rest['remaining_quantity'] <= 0:
+				queue.popleft()
+				self._remove_empty_price_level(symbol, 'SELL' if buy else 'BUY', opp_price)
+			# Update market state
+			bb = self._best_bid(symbol)
+			ba = self._best_ask(symbol)
+			post_mid = (bb + ba) / 2.0 if (bb is not None and ba is not None) else exec_price
+			post_spread = (ba - bb) if (bb is not None and ba is not None) else 0.0
+			impact_bps = abs(exec_price - pre_mid) / pre_mid * 10000 if pre_mid else 0.0
+			self.trade_sequence += 1
+			trade_id = (
+				f"TRD_{self.run_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_"
+				f"{self.trade_sequence:08d}"
+			)
+			trade = {
+				"trade_id": trade_id,
+				"timestamp": current_time,
+				"microsecond": current_time.microsecond,
+				"symbol": symbol,
+				"price": round(exec_price, 2),
+				"quantity": match_qty,
+				"buy_order_id": incoming['order_id'] if buy else rest['order_id'],
+				"sell_order_id": rest['order_id'] if buy else incoming['order_id'],
+				"buy_agent_id": incoming['agent_id'] if buy else rest['agent_id'],
+				"sell_agent_id": rest['agent_id'] if buy else incoming['agent_id'],
+				"aggressor_side": 'BUY' if buy else 'SELL',
+				"market_impact_bps": impact_bps,
+				"permanent_impact_bps": impact_bps * 0.3,
+				"temporary_impact_bps": impact_bps * 0.7,
+				"pre_trade_mid": pre_mid,
+				"post_trade_mid": post_mid,
+				"pre_trade_spread": pre_spread,
+				"post_trade_spread": post_spread,
+				"matching_latency_microsec": random.randint(10, 1000),
+				"trade_sequence_number": self.trade_sequence
+			}
+			trades.append(trade)
+			# Store immediately
+			session.add(DetailedTradeDB(**trade))
+			# Update state mid/spread for symbol
+			if bb is not None and ba is not None:
+				self.market_state[symbol]['best_bid'] = bb
+				self.market_state[symbol]['best_ask'] = ba
+				self.market_state[symbol]['spread'] = (ba - bb)
+				self.market_state[symbol]['spread_bps'] = (ba - bb) / ((bb + ba) / 2.0) * 10000 if (bb and ba) else self.market_state[symbol]['spread_bps']
+				self.market_state[symbol]['mid_price'] = (bb + ba) / 2.0
+		
+		incoming['remaining_quantity'] = remaining
+		# If remaining and limit, add to book
+		if remaining > 0 and incoming['order_type'] == 'LIMIT':
+			self._add_limit_order_to_book(symbol, incoming)
+		return trades
+	
 	def _process_orders_and_match(self, orders: List[Dict], current_time: datetime) -> List[Dict]:
-		"""Process orders and execute trades with detailed matching"""
-		
-		trades = []
-		
-		# Store orders in database
+		"""Process orders with a live price–time priority book and create trades."""
+		trades: List[Dict] = []
 		with self.get_db_session() as session:
+			# Persist orders
 			for order in orders:
 				db_order = DetailedOrderDB(**order)
 				session.add(db_order)
-			
-			# Simple matching logic (enhanced version)
-			trades = self._match_orders_advanced(orders, current_time, session)
-			
-			# Store trades
-			for trade in trades:
-				db_trade = DetailedTradeDB(**trade)
-				session.add(db_trade)
-		
+			# Match in arrival sequence
+			for order in orders:
+				trades.extend(self._process_incoming_order(order['symbol'], order, current_time, session))
 		return trades
 	
 	def _match_orders_advanced(self, orders: List[Dict], current_time: datetime, session: Session) -> List[Dict]:
-		"""Advanced order matching with detailed market impact tracking"""
-		
-		trades = []
-		
-		# Group orders by symbol
-		symbol_orders = defaultdict(lambda: {"buys": [], "sells": []})
-		for order in orders:
-			symbol = order["symbol"]
-			if order["side"] == "BUY":
-				symbol_orders[symbol]["buys"].append(order)
-			else:
-				symbol_orders[symbol]["sells"].append(order)
-		
-		# Process each symbol
-		for symbol, order_dict in symbol_orders.items():
-			buys = sorted(order_dict["buys"], key=lambda x: (-x["price"], x["timestamp"]))  # Price priority
-			sells = sorted(order_dict["sells"], key=lambda x: (x["price"], x["timestamp"]))
-			
-			# Match orders
-			symbol_trades = self._execute_matches(symbol, buys, sells, current_time)
-			trades.extend(symbol_trades)
-		
-		return trades
+		"""Deprecated: no longer used (kept for compatibility)."""
+		return []
 	
 	def _execute_matches(self, symbol: str, buy_orders: List[Dict], 
 						sell_orders: List[Dict], current_time: datetime) -> List[Dict]:
-		"""Execute order matches for a symbol"""
-		
-		trades = []
-		market_state = self.market_state[symbol]
-		
-		# Simple crossing logic
-		for buy_order in buy_orders:
-			for sell_order in sell_orders:
-				if self._can_match(buy_order, sell_order):
-					trade = self._create_trade(buy_order, sell_order, current_time, market_state)
-					if trade:
-						trades.append(trade)
-						
-						# Update market state
-						market_state["last_trade_price"] = trade["price"]
-						market_state["volume_1min"] += trade["quantity"]
-						market_state["trade_count_1min"] += 1
-						
-						# For simplicity, only match one trade per buy order
-						break
-		
-		return trades
+		"""Deprecated: use _process_incoming_order within _process_orders_and_match."""
+		return []
 	
 	def _can_match(self, buy_order: Dict, sell_order: Dict) -> bool:
-		"""Check if orders can be matched"""
-		
-		if buy_order["symbol"] != sell_order["symbol"]:
-			return False
-		
-		# Market orders always match
-		if buy_order["order_type"] == "MARKET" or sell_order["order_type"] == "MARKET":
-			return True
-		
-		# Limit orders match if buy price >= sell price
-		return buy_order["price"] >= sell_order["price"]
+		"""Deprecated."""
+		return False
 	
 	def _create_trade(self, buy_order: Dict, sell_order: Dict, 
 					 current_time: datetime, market_state: Dict) -> Dict:
-		"""Create detailed trade record"""
-		
-		# Determine trade price
-		if buy_order["order_type"] == "MARKET":
-			price = sell_order["price"]
-		elif sell_order["order_type"] == "MARKET":
-			price = buy_order["price"]
-		else:
-			# For limit orders, use the resting order's price (price-time priority)
-			if buy_order["timestamp"] < sell_order["timestamp"]:
-				price = buy_order["price"]
-			else:
-				price = sell_order["price"]
-		
-		# Determine quantity
-		quantity = min(buy_order["remaining_quantity"], sell_order["remaining_quantity"])
-		
-		# Calculate market impact
-		pre_mid = market_state["mid_price"]
-		post_mid = price  # Simplified
-		impact_bps = abs(price - pre_mid) / pre_mid * 10000
-		
-		# Generate trade ID with run-specific prefix to avoid collisions across runs
-		self.trade_sequence += 1
-		trade_id = (
-			f"TRD_{self.run_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_"
-			f"{self.trade_sequence:08d}"
-		)
-		
-		return {
-			"trade_id": trade_id,
-			"timestamp": current_time,
-			"microsecond": current_time.microsecond,
-			"symbol": buy_order["symbol"],
-			"price": round(price, 2),
-			"quantity": quantity,
-			"buy_order_id": buy_order["order_id"],
-			"sell_order_id": sell_order["order_id"],
-			"buy_agent_id": buy_order["agent_id"],
-			"sell_agent_id": sell_order["agent_id"],
-			"aggressor_side": "BUY" if buy_order["order_type"] == "MARKET" else "SELL",
-			"market_impact_bps": impact_bps,
-			"permanent_impact_bps": impact_bps * 0.3,  # Simplified
-			"temporary_impact_bps": impact_bps * 0.7,
-			"pre_trade_mid": pre_mid,
-			"post_trade_mid": post_mid,
-			"pre_trade_spread": market_state["spread"],
-			"post_trade_spread": market_state["spread"],  # Simplified
-			"matching_latency_microsec": random.randint(10, 1000),
-			"trade_sequence_number": self.trade_sequence
-		}
-
+		"""Deprecated."""
+		return {}
+	
 	def _update_order_books(self, orders: List[Dict], trades: List[Dict]):
-		"""Update order book state tracking"""
-		# This would maintain the live order book state
-		# For now, simplified implementation
-		pass
-
+		"""Book is updated during matching; no-op."""
+		return
+	
 	def _take_detailed_snapshots(self, current_time: datetime):
-		"""Take detailed order book snapshots"""
-		
+		"""Take detailed order book snapshots from the live book"""
 		snapshots = []
-		
 		for symbol in self.config.symbols:
-			snapshot = self._create_detailed_snapshot(symbol, current_time)
+			book = self.order_books[symbol]
+			bb = self._best_bid(symbol)
+			ba = self._best_ask(symbol)
+			if bb is None or ba is None:
+				mid = self.market_state[symbol]['mid_price']
+				spread = self.market_state[symbol]['spread']
+				best_bid_size = 0
+				best_ask_size = 0
+			else:
+				mid = (bb + ba) / 2.0
+				spread = (ba - bb)
+				best_bid_size = sum(o['remaining_quantity'] for o in book['bids'][bb]) if bb in book['bids'] else 0
+				best_ask_size = sum(o['remaining_quantity'] for o in book['asks'][ba]) if ba in book['asks'] else 0
+			# Build depth JSON up to max_depth_levels
+			bid_depth = {}
+			ask_depth = {}
+			for i, price in enumerate(book['bid_prices'][:self.config.max_depth_levels]):
+				lvl = book['bids'][price]
+				bid_depth[str(round(price, 2))] = {
+					"size": int(sum(o['remaining_quantity'] for o in lvl)),
+					"count": len(lvl),
+					"hidden": 0
+				}
+			for i, price in enumerate(book['ask_prices'][:self.config.max_depth_levels]):
+				lvl = book['asks'][price]
+				ask_depth[str(round(price, 2))] = {
+					"size": int(sum(o['remaining_quantity'] for o in lvl)),
+					"count": len(lvl),
+					"hidden": 0
+				}
+			snapshot = {
+				"timestamp": current_time,
+				"microsecond": current_time.microsecond,
+				"symbol": symbol,
+				"best_bid": bb if bb is not None else None,
+				"best_ask": ba if ba is not None else None,
+				"best_bid_size": best_bid_size,
+				"best_ask_size": best_ask_size,
+				"absolute_spread": spread,
+				"relative_spread_bps": (spread / mid * 10000) if mid else None,
+				"effective_spread_bps": (spread / mid * 10000) if mid else None,
+				"quoted_spread_bps": (spread / mid * 10000) if mid else None,
+				"mid_price": mid,
+				"weighted_mid_price": mid,
+				"microprice": mid,
+				"total_bid_volume": int(sum(v['size'] for v in bid_depth.values())) if bid_depth else 0,
+				"total_ask_volume": int(sum(v['size'] for v in ask_depth.values())) if ask_depth else 0,
+				"bid_volume_5": int(sum(v['size'] for v in list(bid_depth.values())[:5])) if bid_depth else 0,
+				"ask_volume_5": int(sum(v['size'] for v in list(ask_depth.values())[:5])) if ask_depth else 0,
+				"bid_volume_10": int(sum(v['size'] for v in list(bid_depth.values())[:10])) if bid_depth else 0,
+				"ask_volume_10": int(sum(v['size'] for v in list(ask_depth.values())[:10])) if ask_depth else 0,
+				"volume_imbalance": ((best_bid_size - best_ask_size) / (best_bid_size + best_ask_size)) if (best_bid_size + best_ask_size) > 0 else 0.0,
+				"depth_imbalance": 0.0,
+				"order_count_imbalance": 0.0,
+				"price_volatility_1min": self.market_state[symbol]["volatility"],
+				"volume_rate_1min": self.market_state[symbol]["volume_1min"],
+				"trade_count_1min": self.market_state[symbol]["trade_count_1min"],
+				"order_arrival_rate_1min": 10.0,
+				"bid_depth_json": json.dumps(bid_depth),
+				"ask_depth_json": json.dumps(ask_depth),
+				"recent_trades_json": json.dumps([])
+			}
 			snapshots.append(snapshot)
 		
-		# Store snapshots in database
+		# Store snapshots
 		if snapshots:
 			with self.get_db_session() as session:
 				for snapshot in snapshots:
-					db_snapshot = LOBSnapshotDB(**snapshot)
-					session.add(db_snapshot)
-
-	def _create_detailed_snapshot(self, symbol: str, current_time: datetime) -> Dict:
-		"""Create detailed order book snapshot"""
-		
-		market_state = self.market_state[symbol]
-		
-		# Generate realistic order book depth
-		mid_price = market_state["mid_price"]
-		spread = market_state["spread"]
-		
-		# Create bid/ask depth (simplified realistic generation)
-		bid_depth = {}
-		ask_depth = {}
-		
-		total_bid_vol = 0
-		total_ask_vol = 0
-		
-		for level in range(self.config.max_depth_levels):
-			# Bid side (decreasing prices)
-			bid_price = mid_price - spread/2 - level * self.config.tick_size
-			bid_size = max(100, int(np.random.exponential(1000)))  # Exponential decay
-			bid_depth[str(round(bid_price, 2))] = {
-				"size": bid_size,
-				"count": random.randint(1, 10),
-				"hidden": random.randint(0, bid_size // 10)
-			}
-			total_bid_vol += bid_size
-			
-			# Ask side (increasing prices)
-			ask_price = mid_price + spread/2 + level * self.config.tick_size
-			ask_size = max(100, int(np.random.exponential(1000)))
-			ask_depth[str(round(ask_price, 2))] = {
-				"size": ask_size,
-				"count": random.randint(1, 10),
-				"hidden": random.randint(0, ask_size // 10)
-			}
-			total_ask_vol += ask_size
-		
-		# Calculate metrics
-		best_bid = mid_price - spread/2
-		best_ask = mid_price + spread/2
-		volume_imbalance = (total_bid_vol - total_ask_vol) / (total_bid_vol + total_ask_vol)
-		
-		return {
-			"timestamp": current_time,
-			"microsecond": current_time.microsecond,
-			"symbol": symbol,
-			"best_bid": best_bid,
-			"best_ask": best_ask,
-			"best_bid_size": bid_depth[str(round(best_bid, 2))]["size"],
-			"best_ask_size": ask_depth[str(round(best_ask, 2))]["size"],
-			"absolute_spread": spread,
-			"relative_spread_bps": (spread / mid_price) * 10000,
-			"effective_spread_bps": (spread / mid_price) * 10000,  # Simplified
-			"quoted_spread_bps": (spread / mid_price) * 10000,
-			"mid_price": mid_price,
-			"weighted_mid_price": mid_price,  # Simplified
-			"microprice": mid_price,  # Simplified
-			"total_bid_volume": total_bid_vol,
-			"total_ask_volume": total_ask_vol,
-			"bid_volume_5": sum(d["size"] for d in list(bid_depth.values())[:5]),
-			"ask_volume_5": sum(d["size"] for d in list(ask_depth.values())[:5]),
-			"bid_volume_10": sum(d["size"] for d in list(bid_depth.values())[:10]),
-			"ask_volume_10": sum(d["size"] for d in list(ask_depth.values())[:10]),
-			"volume_imbalance": volume_imbalance,
-			"depth_imbalance": volume_imbalance,  # Simplified
-			"order_count_imbalance": 0.0,  # Simplified
-			"price_volatility_1min": market_state["volatility"],
-			"volume_rate_1min": market_state["volume_1min"],
-			"trade_count_1min": market_state["trade_count_1min"],
-			"order_arrival_rate_1min": 10.0,  # Simplified
-			"bid_depth_json": json.dumps(bid_depth),
-			"ask_depth_json": json.dumps(ask_depth),
-			"recent_trades_json": json.dumps([])  # Simplified
-		}
-
+					session.add(LOBSnapshotDB(**snapshot))
+	
 	def _perform_database_maintenance(self):
 		"""Perform database optimization"""
 		
