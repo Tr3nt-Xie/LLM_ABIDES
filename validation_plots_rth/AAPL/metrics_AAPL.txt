@@ -1,2 +1,3 @@
-KS: None (p=None)
-EMD: None
+Interval used: 1d | Cadence: 1D
+KS: nan (p=nan)
+EMD: nan

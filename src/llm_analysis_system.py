@@ -151,7 +151,8 @@ class LLMOrderBookAnalyzer:
         sim_trades = trades_df[trades_df['symbol'] == symbol].copy()
         if sim_trades.empty:
             return {"error": f"No simulated trades for {symbol}"}
-        result = fetch_and_compare(symbol=symbol, sim_trades=sim_trades, start=start, end=end, interval=interval)
+        result, used_interval = fetch_and_compare(symbol=symbol, sim_trades=sim_trades, start=start, end=end, interval=interval, allow_fallback=True)
+        result["used_interval"] = used_interval
         return result
     
     def _calculate_generated_stats(self, orders_df: pd.DataFrame, trades_df: pd.DataFrame, 

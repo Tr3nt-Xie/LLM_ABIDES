@@ -373,53 +373,68 @@ def plot_intraday_volume(sim_trades: pd.DataFrame, real_ohlcv: pd.DataFrame, out
     plt.close(fig)
 
 
+def _interval_to_rule(interval_used: str) -> Tuple[str, bool]:
+	"""Map yfinance interval to pandas resample rule and whether to apply RTH filter."""
+	m = interval_used.lower() if interval_used else '1m'
+	if m in ('1m', '2m'):
+		return ('1min', True)
+	if m in ('5m', '15m', '30m', '60m', '90m', '1h'):
+		# approximate to nearest
+		return (m.replace('m', 'min').replace('h', 'H'), True)
+	if m in ('1d', '1wk', '1mo'):
+		return ('1D' if m == '1d' else ('1W' if m == '1wk' else '1M'), False)
+	return ('1min', True)
+
+
 def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, outdir: str) -> Dict[str, Any]:
-    out = Path(outdir)
-    _ensure_outdir(out)
-    frames = load_simulated_frames(db_path, symbol)
-    cfg = MarketFetchConfig(symbol=symbol, start=start, end=end, interval='1m')
-    real = fetch_intraday_ohlcv(cfg)
-    # Align to RTH and mid-to-mid bar comparison
-    snap = frames['snapshots']
-    if not snap.empty:
-        snap_rth = _filter_rth(snap, 'timestamp')
-        sim_mid_series = _resample_mid(snap_rth.rename(columns={'mid_price': 'mid'}), 'mid', 'timestamp', '1min')
-    else:
-        sim_mid_series = pd.DataFrame(columns=['timestamp', 'mid'])
-    real_rth = _filter_rth(real, 'timestamp') if not real.empty else real
-    # Merge on timestamps for plotting/metrics
-    # Plots
-    plot_price_timeseries(frames['snapshots'], real_rth, out, symbol)
-    plot_return_distributions(frames['snapshots'], real_rth, out, symbol)
-    plot_autocorrelations(frames['snapshots'], out, symbol)
-    plot_intraday_volume(frames['trades'], real_rth, out, symbol)
-    # Additional plots
-    plot_spread_distribution(frames['snapshots'], out, symbol)
-    plot_order_sign_acf(frames['trades'], out, symbol)
-    plot_market_impact_curve(frames['trades'], out, symbol)
-    plot_intraday_volatility(frames['snapshots'], real_rth, out, symbol)
-    # Metrics: KS/EMD on 1-min returns mid-to-mid RTH
-    metrics = {}
-    try:
-        if not sim_mid_series.empty and not real_rth.empty:
-            real_mid = real_rth[['timestamp', 'close']].rename(columns={'close': 'mid'})
-            real_mid_1m = _resample_mid(real_mid, 'mid', 'timestamp', '1min')
-            merged = pd.merge(sim_mid_series, real_mid_1m, on='timestamp', suffixes=('_sim', '_real')).dropna()
-            if not merged.empty:
-                ret_sim = np.log(merged['mid_sim']).diff().dropna()
-                ret_real = np.log(merged['mid_real']).diff().dropna()
-                metrics = _ks_emd_bootstrap(ret_sim, ret_real, n_boot=300)
-    except Exception as e:
-        metrics = {'error': str(e)}
-    # Save metrics summary
-    with open(out / f"metrics_{symbol}.txt", 'w') as f:
-        f.write(f"KS: {metrics.get('ks_stat')} (p={metrics.get('ks_p')})\n")
-        if 'ks_ci_95' in metrics:
-            f.write(f"KS 95% CI: {metrics['ks_ci_95']}\n")
-        f.write(f"EMD: {metrics.get('emd')}\n")
-        if 'emd_ci_95' in metrics:
-            f.write(f"EMD 95% CI: {metrics['emd_ci_95']}\n")
-    return {"sim": frames, "real": real_rth, "metrics": metrics}
+	out = Path(outdir)
+	_ensure_outdir(out)
+	frames = load_simulated_frames(db_path, symbol)
+	cfg = MarketFetchConfig(symbol=symbol, start=start, end=end, interval='1m')
+	real = fetch_intraday_ohlcv(cfg)
+	interval_used = real.attrs.get('interval_used', '1m') if isinstance(real, pd.DataFrame) else '1m'
+	resample_rule, apply_rth = _interval_to_rule(interval_used)
+	# Align to RTH and cadence
+	snap = frames['snapshots']
+	if not snap.empty:
+		snap_use = _filter_rth(snap, 'timestamp') if apply_rth else snap
+		sim_mid_series = _resample_mid(snap_use.rename(columns={'mid_price': 'mid'}), 'mid', 'timestamp', resample_rule)
+	else:
+		sim_mid_series = pd.DataFrame(columns=['timestamp', 'mid'])
+	real_use = _filter_rth(real, 'timestamp') if (not real.empty and apply_rth) else real
+	# Plots still use fixed 1min overlays for readability; underlying metrics use cadence
+	plot_price_timeseries(frames['snapshots'], real_use, out, symbol)
+	plot_return_distributions(frames['snapshots'], real_use, out, symbol)
+	plot_autocorrelations(frames['snapshots'], out, symbol)
+	plot_intraday_volume(frames['trades'], real_use, out, symbol)
+	plot_spread_distribution(frames['snapshots'], out, symbol)
+	plot_order_sign_acf(frames['trades'], out, symbol)
+	plot_market_impact_curve(frames['trades'], out, symbol)
+	plot_intraday_volatility(frames['snapshots'], real_use, out, symbol)
+	# Metrics at cadence
+	metrics = {}
+	try:
+		if not sim_mid_series.empty and not real_use.empty:
+			real_mid = real_use[['timestamp', 'close']].rename(columns={'close': 'mid'})
+			real_mid_rs = _resample_mid(real_mid, 'mid', 'timestamp', resample_rule)
+			merged = pd.merge(sim_mid_series, real_mid_rs, on='timestamp', suffixes=('_sim', '_real')).dropna()
+			if not merged.empty:
+				ret_sim = np.log(merged['mid_sim']).diff().dropna()
+				ret_real = np.log(merged['mid_real']).diff().dropna()
+				metrics = _ks_emd_bootstrap(ret_sim, ret_real, n_boot=300)
+				metrics['cadence'] = resample_rule
+				metrics['interval_used'] = interval_used
+	except Exception as e:
+		metrics = {'error': str(e), 'interval_used': interval_used, 'cadence': resample_rule}
+	with open(out / f"metrics_{symbol}.txt", 'w') as f:
+		f.write(f"Interval used: {interval_used} | Cadence: {resample_rule}\n")
+		f.write(f"KS: {metrics.get('ks_stat')} (p={metrics.get('ks_p')})\n")
+		if 'ks_ci_95' in metrics:
+			f.write(f"KS 95% CI: {metrics['ks_ci_95']}\n")
+		f.write(f"EMD: {metrics.get('emd')}\n")
+		if 'emd_ci_95' in metrics:
+			f.write(f"EMD 95% CI: {metrics['emd_ci_95']}\n")
+	return {"sim": frames, "real": real_use, "metrics": metrics}
 
 
 def main():
