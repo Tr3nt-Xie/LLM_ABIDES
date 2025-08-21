@@ -18,24 +18,18 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 import importlib
 
-# Require ABIDES imports
+# Prefer real ABIDES imports, fallback to mock core for development
 try:
     TradingAgent = importlib.import_module("abides_markets.agents.trading_agent").TradingAgent
     Message = importlib.import_module("abides_core.message.message").Message
     util = importlib.import_module("abides_core.utils.util")
 except Exception:
-    # legacy (if package layout differs)
     try:
         TradingAgent = importlib.import_module("agent.TradingAgent").TradingAgent
         Message = importlib.import_module("message.Message").Message
         util = importlib.import_module("util.util")
-    except Exception as e:
-        raise ImportError(
-            "ABIDES Core/Markets not found. Please install abides-core and abides-markets "
-            "and ensure they are on PYTHONPATH.\n"
-            "Example: git clone https://github.com/abides-sim/abides-core && pip install -e abides-core; "
-            "git clone https://github.com/abides-sim/abides-markets && pip install -e abides-markets"
-        ) from e
+    except Exception:
+        from mock_abides_core import TradingAgent, Message, util
 
 # LLM imports
 try:
@@ -52,7 +46,7 @@ try:
         EnhancedLLMNewsAnalyzer, RealisticNewsGenerator
     )
 except ImportError:
-    # Minimal fallbacks for typing only; these paths should be present in runtime through abides-core usage
+    # Minimal fallbacks for typing only
     from enum import Enum
     from dataclasses import dataclass
     class NewsCategory(Enum):
