@@ -32,9 +32,58 @@ from real_data_ingestion import (
     fetch_intraday_ohlcv,
 )
 
+from scipy import stats
+
 
 def _ensure_outdir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
+
+
+def _filter_rth(df: pd.DataFrame, ts_col: str = 'timestamp') -> pd.DataFrame:
+    """Regular Trading Hours: 13:30-20:00 UTC (9:30-16:00 ET)."""
+    df = df.copy()
+    df[ts_col] = pd.to_datetime(df[ts_col], utc=True)
+    df = df.set_index(ts_col)
+    df = df.between_time('13:30', '20:00')
+    return df.reset_index()
+
+
+def _resample_mid(df: pd.DataFrame, price_col: str, ts_col: str = 'timestamp', rule: str = '1min') -> pd.DataFrame:
+    df = df.copy()
+    df[ts_col] = pd.to_datetime(df[ts_col], utc=True)
+    out = (df.set_index(ts_col)[price_col].resample(rule).last().dropna().to_frame('mid'))
+    out = out.reset_index().rename(columns={ts_col: 'timestamp'})
+    return out
+
+
+def _ks_emd_bootstrap(sim_series: pd.Series, real_series: pd.Series, n_boot: int = 200, seed: int = 42) -> Dict[str, Any]:
+    rng = np.random.default_rng(seed)
+    # KS statistic
+    ks_stat, ks_p = stats.ks_2samp(sim_series.dropna(), real_series.dropna())
+    # Approx EMD on 1D via sorted sample L1 distance (quantile matching)
+    m = min(len(sim_series), len(real_series))
+    if m == 0:
+        return {'ks_stat': np.nan, 'ks_p': np.nan, 'emd': np.nan}
+    s_sim = np.sort(sim_series.dropna().values)[:m]
+    s_real = np.sort(real_series.dropna().values)[:m]
+    emd = np.mean(np.abs(s_sim - s_real))
+    # Bootstrap CIs
+    ks_boot = []
+    emd_boot = []
+    for _ in range(n_boot):
+        idx_s = rng.integers(0, m, size=m)
+        idx_r = rng.integers(0, m, size=m)
+        ks_b, _ = stats.ks_2samp(s_sim[idx_s], s_real[idx_r])
+        emd_b = np.mean(np.abs(np.sort(s_sim[idx_s]) - np.sort(s_real[idx_r])))
+        ks_boot.append(ks_b)
+        emd_boot.append(emd_b)
+    return {
+        'ks_stat': float(ks_stat),
+        'ks_p': float(ks_p),
+        'ks_ci_95': (float(np.quantile(ks_boot, 0.025)), float(np.quantile(ks_boot, 0.975))),
+        'emd': float(emd),
+        'emd_ci_95': (float(np.quantile(emd_boot, 0.025)), float(np.quantile(emd_boot, 0.975))),
+    }
 
 
 def load_simulated_frames(db_path: str, symbol: str) -> Dict[str, pd.DataFrame]:
@@ -313,18 +362,47 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
     frames = load_simulated_frames(db_path, symbol)
     cfg = MarketFetchConfig(symbol=symbol, start=start, end=end, interval='1m')
     real = fetch_intraday_ohlcv(cfg)
-
+    # Align to RTH and mid-to-mid bar comparison
+    snap = frames['snapshots']
+    if not snap.empty:
+        snap_rth = _filter_rth(snap, 'timestamp')
+        sim_mid_series = _resample_mid(snap_rth.rename(columns={'mid_price': 'mid'}), 'mid', 'timestamp', '1min')
+    else:
+        sim_mid_series = pd.DataFrame(columns=['timestamp', 'mid'])
+    real_rth = _filter_rth(real, 'timestamp') if not real.empty else real
+    # Merge on timestamps for plotting/metrics
     # Plots
-    plot_price_timeseries(frames['snapshots'], real, out, symbol)
-    plot_return_distributions(frames['snapshots'], real, out, symbol)
+    plot_price_timeseries(frames['snapshots'], real_rth, out, symbol)
+    plot_return_distributions(frames['snapshots'], real_rth, out, symbol)
     plot_autocorrelations(frames['snapshots'], out, symbol)
-    plot_intraday_volume(frames['trades'], real, out, symbol)
-    # Additional plots inspired by ABIDES papers
+    plot_intraday_volume(frames['trades'], real_rth, out, symbol)
+    # Additional plots
     plot_spread_distribution(frames['snapshots'], out, symbol)
     plot_order_sign_acf(frames['trades'], out, symbol)
     plot_market_impact_curve(frames['trades'], out, symbol)
-    plot_intraday_volatility(frames['snapshots'], real, out, symbol)
-    return {"sim": frames, "real": real}
+    plot_intraday_volatility(frames['snapshots'], real_rth, out, symbol)
+    # Metrics: KS/EMD on 1-min returns mid-to-mid RTH
+    metrics = {}
+    try:
+        if not sim_mid_series.empty and not real_rth.empty:
+            real_mid = real_rth[['timestamp', 'close']].rename(columns={'close': 'mid'})
+            real_mid_1m = _resample_mid(real_mid, 'mid', 'timestamp', '1min')
+            merged = pd.merge(sim_mid_series, real_mid_1m, on='timestamp', suffixes=('_sim', '_real')).dropna()
+            if not merged.empty:
+                ret_sim = np.log(merged['mid_sim']).diff().dropna()
+                ret_real = np.log(merged['mid_real']).diff().dropna()
+                metrics = _ks_emd_bootstrap(ret_sim, ret_real, n_boot=300)
+    except Exception as e:
+        metrics = {'error': str(e)}
+    # Save metrics summary
+    with open(out / f"metrics_{symbol}.txt", 'w') as f:
+        f.write(f"KS: {metrics.get('ks_stat')} (p={metrics.get('ks_p')})\n")
+        if 'ks_ci_95' in metrics:
+            f.write(f"KS 95% CI: {metrics['ks_ci_95']}\n")
+        f.write(f"EMD: {metrics.get('emd')}\n")
+        if 'emd_ci_95' in metrics:
+            f.write(f"EMD 95% CI: {metrics['emd_ci_95']}\n")
+    return {"sim": frames, "real": real_rth, "metrics": metrics}
 
 
 def main():

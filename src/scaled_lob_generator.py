@@ -262,6 +262,29 @@ class ScaledLOBConfig:
 	enable_volatility_clustering: bool = True
 	enable_intraday_patterns: bool = True
 	
+	# Hawkes/lognormal calibration knobs
+	hawkes_alpha: float = 0.2
+	hawkes_beta: float = 3.0
+	base_intensity_per_agent: Dict[str, float] = field(default_factory=lambda: {
+		"retail": 0.1, "institutional": 0.2, "hft": 2.0, "market_maker": 1.0
+	})
+	size_lognormal_params_per_agent: Dict[str, Tuple[float, float]] = field(default_factory=lambda: {
+		"retail": (4.5, 1.0), "institutional": (7.0, 0.8), "hft": (4.0, 0.7), "market_maker": (5.0, 0.6)
+	})
+	cancel_rate_per_agent: Dict[str, float] = field(default_factory=lambda: {
+		"retail": 0.05, "institutional": 0.10, "hft": 0.5, "market_maker": 0.3
+	})
+	
+	# Market maker quoting
+	mm_spread_bps_base: float = 8.0
+	mm_inventory_sensitivity: float = 0.00001  # price shift per share inventory
+	mm_quote_refresh_prob: float = 0.2
+	
+	# LLM/news coupling
+	news_impact_to_drift: float = 0.001
+	news_impact_to_vol: float = 0.5
+	news_decay_half_life_sec: float = 900.0
+	
 	# Performance optimization
 	use_bulk_inserts: bool = True
 	create_indexes: bool = True
@@ -281,6 +304,7 @@ class AdvancedAgent:
 		self.positions = {symbol: 0 for symbol in symbols}
 		self.active_orders = {}
 		self.order_history = []
+		self.mm_last_quote_time: Dict[str, datetime] = {}
 		
 		# Behavioral parameters
 		self.setup_agent_profile()
@@ -442,6 +466,9 @@ class AdvancedAgent:
 	def generate_order(self, symbol: str, current_time: datetime, market_data: Dict) -> Optional[Dict]:
 		"""Generate a sophisticated trading order"""
 		
+		if self.agent_type == "market_maker":
+			return self._generate_market_maker_order(symbol, current_time, market_data)
+		
 		# Update strategy signals
 		self._update_strategy_signals(symbol, market_data)
 		
@@ -500,6 +527,13 @@ class AdvancedAgent:
 		deviation = (current_price - vwap) / vwap
 		self.mean_reversion_signals[symbol] = -deviation * self.mean_reversion_factor
 
+		# Hawkes side bias coupling
+		preferred = market_data.get('hawkes_preferred_side')
+		if preferred == 'BUY':
+			self.momentum_signals[symbol] += 0.05
+		elif preferred == 'SELL':
+			self.momentum_signals[symbol] -= 0.05
+
 	def _determine_order_side(self, symbol: str, market_data: Dict) -> Optional[str]:
 		"""Determine order side based on strategy and inventory"""
 		
@@ -553,25 +587,28 @@ class AdvancedAgent:
 		return "LIMIT", max(0.01, price)
 
 	def _determine_order_size(self, symbol: str, side: str, market_data: Dict) -> int:
-		"""Determine order size with risk management"""
+		"""Determine order size with risk management (lognormal)"""
 		
-		# Base size from agent profile
+		# Lognormal parameters per agent type
+		mu, sigma = self.config.size_lognormal_params_per_agent.get(self.agent_type, (5.0, 1.0))
+		lot = self.config.lot_size
+		size = int(max(lot, round(np.random.lognormal(mu, sigma) / lot) * lot))
+		
+		# Clamp to profile range
 		min_size, max_size = self.order_size_range
-		base_size = random.randint(min_size, max_size)
+		size = max(min_size, min(size, max_size))
 		
 		# Adjust for volatility
 		volatility = market_data.get('volatility', 0.02)
-		vol_adjustment = 1.0 - min(volatility * 10, 0.5)  # Reduce size in high vol
+		vol_adjustment = 1.0 - min(volatility * 10, 0.5)
+		size = int(size * vol_adjustment)
 		
-		# Adjust for position limits
+		# Position limits
 		current_position = self.positions[symbol]
 		remaining_capacity = self.max_position_size[symbol] - abs(current_position)
+		size = min(size, remaining_capacity)
 		
-		# Final size
-		adjusted_size = int(base_size * vol_adjustment)
-		final_size = min(adjusted_size, remaining_capacity)
-		
-		return max(self.config.lot_size, final_size)
+		return max(self.config.lot_size, size)
 
 	def _determine_display_strategy(self, quantity: int) -> Tuple[int, int]:
 		"""Determine how much quantity to display vs hide"""
@@ -623,6 +660,46 @@ class AdvancedAgent:
 		
 		return False
 
+	def _generate_market_maker_order(self, symbol: str, current_time: datetime, market_data: Dict) -> Optional[Dict]:
+		"""Inventory-based quoting for market makers."""
+		mid = market_data.get('mid_price', 100.0)
+		vol = market_data.get('volatility', 0.02)
+		spread_bps = self.config.mm_spread_bps_base * (1 + vol * 10)
+		spread = mid * spread_bps / 10000.0
+		inv = self.positions.get(symbol, 0)
+		inv_shift = self.config.mm_inventory_sensitivity * inv * mid
+		bid = max(0.01, mid - spread / 2.0 - inv_shift)
+		ask = max(bid + self.config.tick_size, mid + spread / 2.0 - inv_shift)
+		# Choose side to refresh
+		side = random.choice(["BUY", "SELL"]) if random.random() < self.config.mm_quote_refresh_prob else None
+		if side is None:
+			return None
+		price = bid if side == "BUY" else ask
+		quantity = self._determine_order_size(symbol, side, market_data)
+		microsecond = current_time.microsecond + random.randint(0, 999)
+		order_id = f"MMQ_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}"
+		return {
+			"order_id": order_id,
+			"timestamp": current_time,
+			"microsecond": microsecond,
+			"agent_id": self.agent_id,
+			"agent_type": self.agent_type,
+			"symbol": symbol,
+			"side": side,
+			"order_type": "LIMIT",
+			"price": round(price, 2),
+			"quantity": quantity,
+			"display_quantity": quantity,
+			"hidden_quantity": 0,
+			"remaining_quantity": quantity,
+			"status": "PENDING",
+			"time_in_force": "DAY",
+			"market_price_at_time": mid,
+			"is_aggressive": False,
+			"execution_algo": "QUOTE",
+			"submission_delay_ms": int(self.processing_latency_ms)
+		}
+
 class ScaledLOBGenerator:
 	"""Main class for generating scaled LOB data with detailed tracking"""
 	
@@ -634,6 +711,9 @@ class ScaledLOBGenerator:
 		self.trade_sequence = 0
 		# Unique run identifier to avoid trade_id collisions across runs
 		self.run_id = uuid.uuid4().hex[:8]
+		# Hawkes/simple sign-memory state and news signals
+		self.hawkes_state: Dict[str, Dict[str, Any]] = {s: {"last_sign": 0, "ex": 0.0} for s in config.symbols}
+		self.news_signal: Dict[str, Dict[str, float]] = {s: {"sent": 0.0, "conf": 0.0, "updated": 0.0} for s in config.symbols}
 		
 		# Performance tracking
 		self.stats = {
@@ -867,7 +947,7 @@ class ScaledLOBGenerator:
 		self.stats["snapshots_taken"] += snapshots_today
 	
 	def _update_market_conditions(self, current_time: datetime):
-		"""Update market conditions with realistic patterns"""
+		"""Update market conditions with realistic patterns and news coupling"""
 		
 		for symbol in self.config.symbols:
 			state = self.market_state[symbol]
@@ -908,36 +988,99 @@ class ScaledLOBGenerator:
 			state["best_ask"] = new_price + spread / 2
 			
 			state["last_update"] = current_time
+
+			# News coupling: drift and volatility adjustments
+			sig = self.news_signal.get(symbol, {"sent": 0.0, "conf": 0.0, "updated": 0.0})
+			news_sent = sig.get("sent", 0.0)
+			news_conf = sig.get("conf", 0.0)
+			if abs(news_sent) > 0:
+				# Drift adjustment
+				price_change += self.config.news_impact_to_drift * news_sent * max(0.1, news_conf)
+				# Volatility adjustment
+				state["volatility"] = state.get("volatility", base_volatility) * (1 + self.config.news_impact_to_vol * abs(news_sent))
+				# Decay signal
+				age = (current_time - state.get("last_update", current_time)).total_seconds()
+				decay = 0.5 ** (age / max(1.0, self.config.news_decay_half_life_sec))
+				self.news_signal[symbol]["sent"] *= decay
+				self.news_signal[symbol]["conf"] *= decay
+	
+	def inject_news_signal(self, symbol: str, sentiment: float, confidence: float):
+		"""External hook to couple LLM-driven news to the market state."""
+		self.news_signal.setdefault(symbol, {"sent": 0.0, "conf": 0.0, "updated": 0.0})
+		self.news_signal[symbol]["sent"] = sentiment
+		self.news_signal[symbol]["conf"] = confidence
 	
 	def _generate_orders_for_timestep(self, current_time: datetime) -> List[Dict]:
-		"""Generate orders for current timestep"""
+		"""Generate orders for current timestep with Hawkes-like sign memory and cancellations"""
 		
 		orders = []
 		
-		# Calculate order intensity based on time of day
+		# Calculate order intensity baseline
 		base_intensity = self.config.base_orders_per_second * self.config.scale_factor
 		
 		# Time-based multiplier
 		hour = current_time.hour
 		if hour in [9, 15, 16]:
-			intensity = base_intensity * self.config.peak_order_multiplier
+			intensity_mult = self.config.peak_order_multiplier
 		elif hour in [11, 12, 13, 14]:
-			intensity = base_intensity * self.config.min_order_multiplier
+			intensity_mult = self.config.min_order_multiplier
 		else:
-			intensity = base_intensity
+			intensity_mult = 1.0
 		
-		# Generate orders from subset of agents (not all agents trade every timestep)
-		timestep_probability = intensity / len(self.agents) / 10  # Probability per agent per timestep
+		dt = self.config.snapshot_frequency_ms / 1000.0
 		
-		for agent in self.agents:
-			for symbol in self.config.symbols:
-				if random.random() < timestep_probability:
+		for symbol in self.config.symbols:
+			# Update Hawkes excitement
+			hs = self.hawkes_state[symbol]
+			hs["ex"] *= max(0.0, 1.0 - self.config.hawkes_beta * dt)
+			# Determine preferred side using last sign and excitement
+			if random.random() < 0.5 + 0.4 * hs["ex"] * (1 if hs["last_sign"] >= 0 else -1):
+				preferred_side = 'BUY'
+			else:
+				preferred_side = 'SELL'
+			# Embed preferred side into market_data for agent bias
+			self.market_state[symbol]['hawkes_preferred_side'] = preferred_side
+			
+			# Intensity per agent type
+			for agent in self.agents:
+				mu = self.config.base_intensity_per_agent.get(agent.agent_type, 0.1)
+				lam = mu * intensity_mult
+				p_event = min(0.9, lam * dt)
+				if random.random() < p_event:
 					if agent.should_trade(current_time, symbol, self.market_state[symbol]):
 						order = agent.generate_order(symbol, current_time, self.market_state[symbol])
 						if order:
 							orders.append(order)
+							# Update Hawkes excitement and last sign when an order is created in preferred direction
+							if order['side'] == preferred_side:
+								hs["ex"] = min(1.0, hs.get("ex", 0.0) + self.config.hawkes_alpha)
+								hs["last_sign"] = 1 if preferred_side == 'BUY' else -1
+		
+		# Random cancellations across books
+		self._simulate_cancellations()
 		
 		return orders
+	
+	def _simulate_cancellations(self):
+		"""Randomly cancel some resting orders based on agent cancel rates."""
+		for symbol in self.config.symbols:
+			book = self.order_books[symbol]
+			for side_name, lvlmap, prices in [("BUY", book['bids'], book['bid_prices']), ("SELL", book['asks'], book['ask_prices'])]:
+				if not prices:
+					continue
+				# Consider top 5 levels for cancellations
+				levels = prices[:5] if side_name == 'BUY' else prices[:5]
+				for price in list(levels):
+					queue = lvlmap.get(price)
+					if not queue:
+						continue
+					for _ in range(min(2, len(queue))):
+						ordr = queue[0]
+						agent_type = ordr.get('agent_type', 'retail')
+						p_cancel = self.config.cancel_rate_per_agent.get(agent_type, 0.05)
+						if random.random() < p_cancel * 0.1:  # scaled by timestep
+							queue.popleft()
+							self._remove_empty_price_level(symbol, 'BUY' if side_name == 'BUY' else 'SELL', price)
 	
 	def _add_limit_order_to_book(self, symbol: str, order: Dict):
 		book = self.order_books[symbol]
