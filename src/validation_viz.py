@@ -33,6 +33,8 @@ from real_data_ingestion import (
 )
 
 from scipy import stats
+import sqlite3
+import pytz
 
 
 def _ensure_outdir(path: Path) -> None:
@@ -40,12 +42,17 @@ def _ensure_outdir(path: Path) -> None:
 
 
 def _filter_rth(df: pd.DataFrame, ts_col: str = 'timestamp') -> pd.DataFrame:
-    """Regular Trading Hours: 13:30-20:00 UTC (9:30-16:00 ET)."""
+    """Filter to regular trading hours using America/New_York (DST-aware)."""
     df = df.copy()
     df[ts_col] = pd.to_datetime(df[ts_col], utc=True)
+    # Convert to US/Eastern for correct RTH handling across DST
+    df[ts_col] = df[ts_col].dt.tz_convert('America/New_York')
     df = df.set_index(ts_col)
-    df = df.between_time('13:30', '20:00')
-    return df.reset_index()
+    df = df.between_time('09:30', '16:00')
+    # Convert back to UTC
+    df = df.reset_index()
+    df[ts_col] = df[ts_col].dt.tz_convert('UTC')
+    return df
 
 
 def _resample_mid(df: pd.DataFrame, price_col: str, ts_col: str = 'timestamp', rule: str = '1min') -> pd.DataFrame:
@@ -148,6 +155,41 @@ def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out:
     fig.tight_layout()
     fig.savefig(out / f"price_timeseries_{symbol}.png", dpi=120)
     plt.close(fig)
+
+
+def plot_price_timeseries_aligned(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str, resample_rule: str, apply_rth: bool) -> None:
+	"""Plot sim vs real price aligned to the same cadence and RTH handling."""
+	if sim_snap.empty or real_ohlcv.empty:
+		return
+	# Prepare sim mid series
+	sim = sim_snap.copy()
+	sim['timestamp'] = pd.to_datetime(sim['timestamp'], utc=True, errors='coerce')
+	if apply_rth:
+		sim = _filter_rth(sim, 'timestamp')
+	if 'mid_price' in sim.columns:
+		sim_mid = sim[['timestamp', 'mid_price']].rename(columns={'mid_price': 'mid'})
+	else:
+		sim['mid'] = (sim.get('best_bid') + sim.get('best_ask')) / 2.0
+		sim_mid = sim[['timestamp', 'mid']]
+	sim_rs = _resample_mid(sim_mid, 'mid', 'timestamp', resample_rule)
+	# Prepare real series
+	real = real_ohlcv.copy()
+	if apply_rth:
+		real = _filter_rth(real, 'timestamp')
+	real_mid = real[['timestamp', 'close']].rename(columns={'close': 'mid'})
+	real_rs = _resample_mid(real_mid, 'mid', 'timestamp', resample_rule)
+	if sim_rs.empty or real_rs.empty:
+		return
+	fig, ax = plt.subplots(figsize=(12, 5))
+	ax.plot(sim_rs['timestamp'], sim_rs['mid'], label=f'Sim {symbol} (mid, {resample_rule})', alpha=0.7)
+	ax.plot(real_rs['timestamp'], real_rs['mid'], label=f'Real {symbol} (close, {resample_rule})', alpha=0.7)
+	ax.set_title(f"Price Timeseries (Aligned): {symbol}")
+	ax.set_xlabel('Time (UTC)')
+	ax.set_ylabel('Price')
+	ax.legend()
+	fig.tight_layout()
+	fig.savefig(out / f"price_timeseries_aligned_{symbol}.png", dpi=120)
+	plt.close(fig)
 
 
 def plot_spread_distribution(sim_snap: pd.DataFrame, out: Path, symbol: str) -> None:
@@ -404,6 +446,8 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
 	real_use = _filter_rth(real, 'timestamp') if (not real.empty and apply_rth) else real
 	# Plots still use fixed 1min overlays for readability; underlying metrics use cadence
 	plot_price_timeseries(frames['snapshots'], real_use, out, symbol)
+	# Also save an aligned cadence plot for visual correctness
+	plot_price_timeseries_aligned(frames['snapshots'], real, out, symbol, resample_rule, apply_rth)
 	plot_return_distributions(frames['snapshots'], real_use, out, symbol)
 	plot_autocorrelations(frames['snapshots'], out, symbol)
 	plot_intraday_volume(frames['trades'], real_use, out, symbol)
