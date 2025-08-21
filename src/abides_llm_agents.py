@@ -13,81 +13,29 @@ import numpy as np
 import pandas as pd
 import random
 import json
-import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 import importlib
 
-"""Attempt to import ABIDES Core modules from common locations.
-Order of preference:
-1) abides_core package (modern)
-2) legacy flat module paths used in some forks
-Falls back to minimal mocks for dev.
-"""
-
-TradingAgent = None
-Message = None
-util = None
-
-# Try modern abides_core
+# Require ABIDES imports
 try:
     TradingAgent = importlib.import_module("abides_core.agent.trading_agent").TradingAgent
     Message = importlib.import_module("abides_core.message.message").Message
     util = importlib.import_module("abides_core.utils.util")
 except Exception:
-    pass
-
-# Try legacy flat paths
-if TradingAgent is None or Message is None or util is None:
+    # legacy (if package layout differs)
     try:
         TradingAgent = importlib.import_module("agent.TradingAgent").TradingAgent
         Message = importlib.import_module("message.Message").Message
         util = importlib.import_module("util.util")
-    except Exception:
-        pass
-
-# Fallback minimal mocks
-if TradingAgent is None or Message is None or util is None:
-    print("Warning: ABIDES not found. Creating mock classes for development.")
-
-    class TradingAgent:  # type: ignore
-        def __init__(self, id, name, type, random_state=None, log_orders=False):
-            self.id = id
-            self.name = name
-            self.type = type
-            self.random_state = random_state or np.random.RandomState()
-            self.log_orders = log_orders
-            self.holdings = {"CASH": 10000000}
-            self.orders = {}
-            self.last_trade = {}
-
-        def receiveMessage(self, currentTime, msg):
-            pass
-
-        def wakeup(self, currentTime):
-            pass
-
-        def placeOrder(self, order):
-            pass
-
-        def cancelOrder(self, order):
-            pass
-
-        # Provide a no-op sendMessage compatible with ABIDES signature
-        def sendMessage(self, recipient_id, msg, broadcast=False):
-            # In real ABIDES this goes through the kernel; here we no-op for dev
-            return None
-
-    class Message:  # type: ignore
-        def __init__(self, msg_type, body=None):
-            self.msg_type = msg_type
-            self.body = body or {}
-
-    class util:  # type: ignore
-        @staticmethod
-        def log_print(msg):
-            print(msg)
+    except Exception as e:
+        raise ImportError(
+            "ABIDES Core not found. Please install abides-core and abides-markets "
+            "and ensure they are on PYTHONPATH.\n"
+            "Example: git clone https://github.com/abides-sim/abides-core && pip install -e abides-core; "
+            "git clone https://github.com/abides-sim/abides-markets && pip install -e abides-markets"
+        ) from e
 
 # LLM imports
 try:
@@ -95,7 +43,7 @@ try:
     HAS_LLM = True
 except ImportError:
     HAS_LLM = False
-    print("Warning: autogen not found. LLM features disabled.")
+    logging.getLogger(__name__).warning("autogen not found. LLM features disabled.")
 
 # Enhanced LLM system imports
 try:
@@ -104,16 +52,14 @@ try:
         EnhancedLLMNewsAnalyzer, RealisticNewsGenerator
     )
 except ImportError:
-    # Create minimal versions for ABIDES compatibility
+    # Minimal fallbacks for typing only; these paths should be present in runtime through abides-core usage
     from enum import Enum
     from dataclasses import dataclass
-    
     class NewsCategory(Enum):
         EARNINGS = "earnings"
         MERGERS = "mergers"
         REGULATORY = "regulatory"
         MACRO_ECONOMIC = "macro_economic"
-    
     @dataclass
     class NewsEvent:
         timestamp: datetime
@@ -123,7 +69,6 @@ except ImportError:
         affected_symbols: List[str]
         sentiment_score: float
         importance: float
-    
     @dataclass  
     class MarketSignal:
         timestamp: datetime
@@ -140,16 +85,13 @@ logger = logging.getLogger(__name__)
 class ABIDESLLMNewsAnalyzer(TradingAgent):
     """
     ABIDES-compatible LLM News Analyzer Agent
-    
-    This agent processes news events and generates market analysis using LLM reasoning,
-    then distributes insights to other agents through ABIDES message system.
     """
     
     def __init__(self, id, name, type="ABIDESLLMNewsAnalyzer", symbols=None,
                  random_state=None, log_orders=False, llm_config=None):
         super().__init__(id, name, type, random_state, log_orders)
         
-        self.symbols = symbols or ["ABM"]  # Default ABIDES symbol
+        self.symbols = symbols or ["ABM"]
         self.llm_config = llm_config
         self.analysis_history = []
         self.pending_news = []
@@ -167,73 +109,48 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
         util.log_print(f"ABIDESLLMNewsAnalyzer {self.name} initialized for symbols: {self.symbols}")
     
     def kernelStarting(self, startTime):
-        """Called when ABIDES kernel starts"""
         super().kernelStarting(startTime)
         util.log_print(f"{self.name} starting at {startTime}")
-        
-        # Schedule periodic news generation and analysis
         self.schedulePeriodicNews()
     
     def kernelStopping(self):
-        """Called when ABIDES kernel stops"""
         super().kernelStopping()
         util.log_print(f"{self.name} processed {len(self.analysis_history)} news events")
     
     def wakeup(self, currentTime):
-        """Main agent activity - called by ABIDES kernel"""
         super().wakeup(currentTime)
-        
-        # Check for scheduled news generation
         if self.shouldGenerateNews(currentTime):
             self.generateAndProcessNews(currentTime)
-        
-        # Process any pending news analysis
         self.processPendingNews(currentTime)
     
     def receiveMessage(self, currentTime, msg):
-        """Handle incoming ABIDES messages"""
         super().receiveMessage(currentTime, msg)
-        
         if msg.msg_type == "NEWS_EVENT":
-            # Process external news event
             self.processNewsEvent(currentTime, msg.body)
-            
         elif msg.msg_type == "MARKET_DATA_UPDATE":
-            # Update market context for analysis
             self.updateMarketContext(msg.body)
     
     def shouldGenerateNews(self, currentTime):
-        """Determine if we should generate news at this time"""
-        # Generate news with some probability (configurable)
-        return self.random_state.random() < 0.01  # 1% chance per wakeup
+        return self.random_state.random() < 0.01
     
     def generateAndProcessNews(self, currentTime):
-        """Generate and analyze news events"""
         if not self.news_generator:
             return
-        
         try:
-            # Generate realistic news event
             news_event = self.news_generator.generate_realistic_event()
             news_event.timestamp = currentTime
-            
             util.log_print(f"{self.name} generated news: {news_event.headline}")
-            
-            # Process the news event
             self.processNewsEvent(currentTime, news_event)
-            
         except Exception as e:
             logger.error(f"Error generating news: {e}")
     
     def processNewsEvent(self, currentTime, news_event):
-        """Process a news event with LLM analysis"""
         try:
-            # Perform LLM analysis if available (bridge async → sync)
             if self.llm_analyzer:
+                import asyncio
                 try:
                     raw = asyncio.run(self.llm_analyzer.analyze_news(news_event))
                 except RuntimeError:
-                    # In case an event loop is already running, fall back to basic mapping
                     raw = {
                         'sentiment_score': getattr(news_event, 'sentiment_score', 0.0),
                         'confidence': getattr(news_event, 'confidence', 0.5),
@@ -254,32 +171,19 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
                     'reasoning': raw.get('reasoning', 'LLM analysis')
                 }
             else:
-                # Fallback analysis
                 analysis = self.createFallbackAnalysis(news_event)
-            
-            # Store analysis
-            analysis_record = {
-                'timestamp': currentTime,
-                'news_event': news_event,
-                'analysis': analysis
-            }
-            self.analysis_history.append(analysis_record)
-            
-            # Broadcast analysis to interested agents
+            self.analysis_history.append({'timestamp': currentTime, 'news_event': news_event, 'analysis': analysis})
             self.broadcastAnalysis(currentTime, news_event, analysis)
-            
             util.log_print(f"{self.name} analyzed news with sentiment: {analysis.get('sentiment', 'N/A')}")
-            
         except Exception as e:
             logger.error(f"Error processing news event: {e}")
     
     def createFallbackAnalysis(self, news_event):
-        """Create basic analysis when LLM is not available"""
         return {
             'sentiment': news_event.sentiment_score,
             'impact_assessment': {
                 'immediate_impact': abs(news_event.sentiment_score) * 5,
-                'confidence': news_event.confidence if hasattr(news_event, 'confidence') else 0.5
+                'confidence': getattr(news_event, 'confidence', 0.5)
             },
             'price_predictions': {
                 'direction': 'up' if news_event.sentiment_score > 0 else 'down',
@@ -289,9 +193,6 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
         }
     
     def broadcastAnalysis(self, currentTime, news_event, analysis):
-        """Broadcast news analysis to other agents via ABIDES messaging"""
-        
-        # Create message payload
         message_body = {
             'news_event': {
                 'headline': news_event.headline,
@@ -303,31 +204,22 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
             'analysis': analysis,
             'source_agent': self.name
         }
-        
-        # Send to all trading agents (in real ABIDES, would use proper agent discovery)
         self.sendMessage(None, Message("NEWS_ANALYSIS", message_body), broadcast=True)
     
     def getMarketContext(self):
-        """Get current market context for analysis"""
-        # In real ABIDES, would query exchange for current market data
         return {
             'current_time': datetime.now(),
             'symbols': self.symbols,
-            'market_open': True  # Simplified
+            'market_open': True
         }
     
     def updateMarketContext(self, market_data):
-        """Update market context from market data updates"""
-        # Store market data for contextual analysis
         pass
     
     def schedulePeriodicNews(self):
-        """Schedule periodic news generation"""
-        # In real ABIDES, would use kernel scheduling
         pass
     
     def processPendingNews(self, currentTime):
-        """Process any pending news analysis"""
         if self.pending_news:
             news = self.pending_news.pop(0)
             self.processNewsEvent(currentTime, news)
