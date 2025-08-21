@@ -94,18 +94,30 @@ def _ks_emd_bootstrap(sim_series: pd.Series, real_series: pd.Series, n_boot: int
 
 
 def load_simulated_frames(db_path: str, symbol: str) -> Dict[str, pd.DataFrame]:
-    conn = sqlite3.connect(db_path)
-    orders = pd.read_sql(
-        f"SELECT * FROM orders WHERE symbol = '{symbol}'", conn
-    ) if _table_exists(conn, 'orders') else pd.DataFrame()
-    trades = pd.read_sql(
-        f"SELECT * FROM trades WHERE symbol = '{symbol}'", conn
-    ) if _table_exists(conn, 'trades') else pd.DataFrame()
-    snapshots = pd.read_sql(
-        f"SELECT * FROM orderbook_snapshots WHERE symbol = '{symbol}'", conn
-    ) if _table_exists(conn, 'orderbook_snapshots') else pd.DataFrame()
-    conn.close()
-    return {"orders": orders, "trades": trades, "snapshots": snapshots}
+	conn = sqlite3.connect(db_path)
+	# Enhanced schema
+	orders = pd.read_sql(
+		f"SELECT * FROM orders WHERE symbol = '{symbol}'", conn
+	) if _table_exists(conn, 'orders') else pd.DataFrame()
+	trades = pd.read_sql(
+		f"SELECT * FROM trades WHERE symbol = '{symbol}'", conn
+	) if _table_exists(conn, 'trades') else pd.DataFrame()
+	snapshots = pd.read_sql(
+		f"SELECT * FROM orderbook_snapshots WHERE symbol = '{symbol}'", conn
+	) if _table_exists(conn, 'orderbook_snapshots') else pd.DataFrame()
+	# Scaled schema fallbacks
+	if trades.empty and _table_exists(conn, 'detailed_trades'):
+		trades = pd.read_sql(
+			f"SELECT timestamp, symbol, price, quantity, buy_order_id, sell_order_id, buy_agent_id, sell_agent_id FROM detailed_trades WHERE symbol = '{symbol}'",
+			conn
+		)
+	if snapshots.empty and _table_exists(conn, 'lob_snapshots'):
+		snapshots = pd.read_sql(
+			f"SELECT timestamp, symbol, best_bid, best_ask, mid_price, bid_depth_json, ask_depth_json, spread FROM lob_snapshots WHERE symbol = '{symbol}'",
+			conn
+		)
+	conn.close()
+	return {"orders": orders, "trades": trades, "snapshots": snapshots}
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
@@ -504,6 +516,13 @@ def main():
             # Pad by 30 minutes on each side
             start = (min_ts - pd.Timedelta(minutes=30)).to_pydatetime()
             end = (max_ts + pd.Timedelta(minutes=30)).to_pydatetime()
+            # Clamp to recent if the inferred window is too old for Yahoo 1m/5m
+            from datetime import timezone as _tz
+            now = datetime.now(_tz.utc)
+            if (now - pd.to_datetime(end, utc=True)).total_seconds() > 10 * 24 * 3600:
+                # Use a recent 6h window
+                end = now
+                start = end - timedelta(hours=6)
 
     generate_plots(args.db, args.symbol, start, end, args.outdir)
     print(f"✅ Plots saved to: {args.outdir}")

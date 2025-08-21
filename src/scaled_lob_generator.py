@@ -43,6 +43,12 @@ try:
 except ImportError:
 	pass
 
+# Optional real-world price seeding
+try:
+	from real_data_ingestion import fetch_price_at_timestamp as _fetch_price_at_timestamp
+except Exception:
+	_fetch_price_at_timestamp = None
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -487,7 +493,8 @@ class AdvancedAgent:
 		
 		# Generate unique order ID with timestamp precision
 		microsecond = current_time.microsecond + random.randint(0, 999)
-		order_id = f"ORD_{self.agent_type}_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}"
+		unique_suffix = uuid.uuid4().hex[:6]
+		order_id = f"ORD_{self.agent_type}_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}_{unique_suffix}"
 		
 		# Update last order time
 		self.last_order_time[symbol] = current_time
@@ -677,7 +684,8 @@ class AdvancedAgent:
 		price = bid if side == "BUY" else ask
 		quantity = self._determine_order_size(symbol, side, market_data)
 		microsecond = current_time.microsecond + random.randint(0, 999)
-		order_id = f"MMQ_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}"
+		unique_suffix = uuid.uuid4().hex[:6]
+		order_id = f"MMQ_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}_{unique_suffix}"
 		return {
 			"order_id": order_id,
 			"timestamp": current_time,
@@ -815,8 +823,14 @@ class ScaledLOBGenerator:
 				"AAPL": 150.0, "GOOGL": 2500.0, "MSFT": 300.0, 
 				"TSLA": 800.0, "AMZN": 3000.0
 			}
-			
 			initial_price = base_prices.get(symbol, 100.0)
+			if _fetch_price_at_timestamp is not None:
+				try:
+					p, meta = _fetch_price_at_timestamp(symbol, datetime.utcnow(), interval="1m", allow_fallback=True)
+					if p is not None:
+						initial_price = float(p)
+				except Exception:
+					pass
 			
 			self.market_state[symbol] = {
 				"mid_price": initial_price,
@@ -894,9 +908,14 @@ class ScaledLOBGenerator:
 	def _simulate_trading_day(self, day_number: int):
 		"""Simulate one complete trading day with high granularity"""
 		
-		base_time = datetime(2024, 1, 2) + timedelta(days=day_number)
-		trading_start = base_time.replace(hour=9, minute=30, second=0, microsecond=0)
-		trading_end = base_time.replace(hour=16, minute=0, second=0, microsecond=0)
+		# Use today's date and compute NYSE local open/close, convert to UTC
+		import pandas as _pd
+		now_utc = _pd.Timestamp.utcnow()
+		base_local = now_utc.tz_convert('America/New_York').normalize() + _pd.Timedelta(days=day_number)
+		open_local = base_local + _pd.Timedelta(hours=9, minutes=30)
+		close_local = base_local + _pd.Timedelta(hours=16)
+		trading_start = open_local.tz_convert('UTC').to_pydatetime()
+		trading_end = close_local.tz_convert('UTC').to_pydatetime()
 		
 		current_time = trading_start
 		
@@ -983,7 +1002,7 @@ class ScaledLOBGenerator:
 			spread = base_spread * (1 + state["volatility"] * 10)
 			
 			state["spread"] = spread
-			state["spread_bps"] = (spread / new_price) * 10000
+			state["spread_bps"] = (spread / new_price) * 10000 if new_price > 0 else 0.0
 			state["best_bid"] = new_price - spread / 2
 			state["best_ask"] = new_price + spread / 2
 			

@@ -3,9 +3,9 @@
 
 ⏱️ EXECUTION OVERVIEW
 ----------------------------------------
-Start Time: 2025-08-04 02:17:47
-End Time: 2025-08-04 02:19:43
-Total Duration: 0:01:56.007607
+Start Time: 2025-08-21 22:26:40
+End Time: 2025-08-21 22:32:53
+Total Duration: 0:06:12.622743
 Status: ❌ FAILED
 
 ⚙️ CONFIGURATION
@@ -20,40 +20,40 @@ Max Depth Levels: 10
 
 📊 GENERATION RESULTS
 ----------------------------------------
-Total Orders: 14,157
-Total Trades: 756
-Total Snapshots: 46,800
-Database Size: 74.7734375 MB
-Orders/Second: 122.1
-Fill Rate: 5.3%
+Total Orders: 460,033
+Total Trades: 119,979
+Total Snapshots: 93,922
+Database Size: 376.8515625 MB
+Orders/Second: 1,235.0
+Fill Rate: 26.1%
 
 📈 DATABASE ANALYSIS
 ----------------------------------------
-Order Records: 14,157
-Trade Records: 756
-Snapshot Records: 46,800
+Order Records: 460,033
+Trade Records: 119,979
+Snapshot Records: 93,922
 
 Order Distribution by Symbol:
-  GOOGL: 7,169 orders
-  AAPL: 6,988 orders
+  AAPL: 331,328 orders
+  GOOGL: 128,705 orders
 
 Order Distribution by Agent Type:
-  hft: 13,408 orders
-  market_maker: 549 orders
-  institutional: 117 orders
-  retail: 83 orders
+  hft: 446,903 orders
+  market_maker: 11,486 orders
+  institutional: 1,133 orders
+  retail: 511 orders
 
 📁 OUTPUT FILES
 ----------------------------------------
 Database: small_scale_lob.db
 Output Directory: /workspace/scaled_lob_output
-Reports: 0 generated
+Reports: 1 generated
 
 ⚡ PERFORMANCE INSIGHTS
 ----------------------------------------
-Total Records Generated: 61,713
-Records per Second: 532.0
-Database Efficiency: 825 records/MB
+Total Records Generated: 673,934
+Records per Second: 1,808.6
+Database Efficiency: 1,788 records/MB
 
 🎯 NEXT STEPS
 ----------------------------------------
@@ -64,4 +64,4 @@ Database Efficiency: 825 records/MB
 5. Compare with real market data for validation
 
 ================================================================================
-Report generated on 2025-08-04 02:19:43
+Report generated on 2025-08-21 22:32:53
