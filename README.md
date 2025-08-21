@@ -1,93 +1,103 @@
 # ABIDES-LLM Integration Project
 
-A complete integration of **Large Language Models (LLM)** with **ABIDES** (Agent-Based Interactive Discrete Event Simulation) for realistic market simulation and algorithmic trading research.
+A complete integration of Large Language Models (LLM) with ABIDES-inspired market simulation, focused on high-fidelity microstructure, real-world validation, and scalable limit order book generation.
 
-## 🚀 Features
+## 🚀 Highlights
 
-- **LLM-Enhanced Trading Agents**: AI-powered agents that analyze news and make trading decisions
-- **Market Sentiment Analysis**: Real-time analysis of market news and events
-- **Multi-Agent System**: Momentum, contrarian, and neutral trading strategies
-- **Realistic Market Simulation**: Complete market microstructure with order books
-- **News-Driven Trading**: Agents react to market news with sophisticated reasoning
-- **Comprehensive Analytics**: Detailed performance tracking and visualization
+- LLM-enhanced agents and news coupling
+- Realistic market microstructure with a live price–time priority book
+- Real-market validation: fetch OHLCV/news, align to sim, compute KS/EMD with bootstrap CIs
+- SQLite-backed storage for orders, trades, and snapshots
+- Scalable multi-symbol generation with detailed microstructure
 
 ### 🆕 Enhanced Features
 
-- **📊 Complete Order Book Recording**: Full order flow tracking and trade execution logging
-- **🧪 ABIDES-Style Experiments**: Market impact studies, co-location analysis, agent validation
-- **📈 Market Microstructure Analysis**: Spread analysis, volume-price relationships, stylized facts
-- **💾 Comprehensive Data Export**: CSV/JSON export for external analysis and research
-- **⚡ Real-time Performance Tracking**: Live P&L, portfolio valuation, and risk metrics
-- **🔬 Experimental Framework**: Reproduce key experiments from the ABIDES research paper
-- **🧭 Real-Market Validation**: Fetch real OHLCV/news via public APIs and compare simulation vs reality
+- 📊 Complete order/trade/snapshot recording
+- 🧪 Real-market validation and metrics (KS, EMD; bootstrap CIs)
+- 📈 Microstructure realism: spreads, market impact, order-sign ACF, intraday U-shapes
+- 🤖 Inventory-based market-maker quoting; Hawkes-like sign memory; lognormal order sizes; cancellations
+- 🗞️ LLM/news coupling: sentiment drives drift/vol with decay
 
 ## 📁 Project Structure
 
 ```
-clean_project/
-├── main.py                 # Main application entry point
-├── requirements.txt        # Python dependencies
-├── README.md              # This file
-├── src/                   # Core library modules
-│   ├── abides_llm_agents.py          # LLM-enhanced trading agents
-│   ├── abides_llm_config.py          # ABIDES configuration system
-│   ├── enhanced_llm_abides_system.py # Enhanced LLM integration
-│   ├── enhanced_orderbook_db.py      # Enhanced order book + DB
-│   ├── scaled_lob_generator.py       # Scaled LOB live book generator
-│   ├── validation_viz.py             # Realism plots + KS/EMD metrics
-│   └── real_data_ingestion.py        # yfinance OHLCV + news
-├── enhanced_orderbook_main.py
-├── scaled_lob_main.py
-└── examples/
+.
+├── enhanced_orderbook_main.py        # End-to-end enhanced OB simulation + optional validation
+├── scaled_lob_main.py                # Scaled LOB generation with live book
+├── requirements.txt
+├── README.md
+└── src/
+    ├── abides_llm_agents.py          # LLM-enhanced (ABIDES-style) agents (mock-compatible)
+    ├── abides_llm_config.py          # ABIDES configuration scaffolding
+    ├── enhanced_orderbook_db.py      # Enhanced OB + DB; real-price seeding
+    ├── llm_analysis_system.py        # LLM analysis + real-market validation entry point
+    ├── real_data_ingestion.py        # yfinance OHLCV + news; interval fallback
+    ├── scaled_lob_generator.py       # Live price–time priority book, agents, news coupling
+    ├── validation_viz.py             # Plots + KS/EMD with bootstrap CIs; RTH filtering
+    └── mock_abides_core.py           # Lightweight ABIDES Core mock (if real ABIDES unavailable)
 ```
 
 ## 🛠️ Quick Setup
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-# Optional: export OPENAI_API_KEY for LLM analysis
+python -m pip install -r requirements.txt
+# Optional for real LLM: echo "OPENAI_API_KEY=..." > .env
 ```
 
 ## 🔄 End-to-End Workflow
 
-### 1) Run the Enhanced Order Book (multi-symbol)
+### 1) Run the Enhanced Order Book (multi-symbol, recent-day seeding)
+
 ```bash
-# Quick test (2 symbols), with LLM analysis and real-data validation enabled
+# Quick test (2 symbols), with validation enabled
 python enhanced_orderbook_main.py --config quick_test --validate-real --val-symbol AAPL
 
-# Custom multi-symbol run
+# Custom multi-symbol run (seeds starting price from real data at start time)
 python enhanced_orderbook_main.py --custom \
   --agents 1000 --days 1 --symbols AAPL GOOGL MSFT TSLA AMZN \
-  --db-path multi_symbols_orderbook.db
+  --db-path multi_symbols_orderbook.db \
+  --start-utc 2025-08-18T13:30:00Z
 ```
 Outputs:
-- Database: `quick_test_orderbook.db` (or your custom path)
-- Reports: `enhanced_orderbook_output/reports/`
-- Data summaries: `enhanced_orderbook_output/data_summaries/`
+- Database: quick_test_orderbook.db (or your custom path)
+- Reports: enhanced_orderbook_output/reports/
+- Data summaries: enhanced_orderbook_output/data_summaries/
 
-### 2) Generate Realism Plots and Metrics (RTH, mid-to-mid)
+Notes:
+- Starting prices are seeded from real-world data via yfinance at the simulation start time (with interval fallback).
+- Use recent dates for 1-minute validation (yfinance limit: ~last 30 days).
+
+### 2) Generate Realism Plots and Metrics (RTH, cadence-aligned)
+
 ```bash
 # Infers the correct time window from the DB automatically
-python src/validation_viz.py --db quick_test_orderbook.db --symbol AAPL --outdir validation_plots_rth/AAPL
+python src/validation_viz.py --db multi_symbols_orderbook.db --symbol AAPL --outdir validation_plots_rth/AAPL
 ```
 This produces:
 - Price series (sim mid vs real close), return distributions
 - Return and squared-return autocorrelations (volatility clustering)
 - Intraday volume and volatility U-shapes (normalized)
 - Spread distribution, order-sign ACF, market impact vs trade size
-- KS/EMD with 95% bootstrap CIs saved to `metrics_<SYMBOL>.txt`
+- KS/EMD with 95% bootstrap CIs saved to metrics_<SYMBOL>.txt (includes interval_used and cadence)
 
-### 3) Scaled LOB Live-Book Generation (with market-maker quoting)
+Cadence and RTH alignment:
+- Real OHLCV cadence is inferred from yfinance interval_used (1m/5m/15m/1d via fallback)
+- RTH filter is applied for minute-level data using America/New_York (DST-aware)
+
+### 3) Scaled LOB Live-Book Generation
+
 ```bash
 python scaled_lob_main.py --scale small
 # or custom
 python scaled_lob_main.py --custom --scale-factor 100 --days 1 \
   --symbols AAPL GOOGL MSFT --db-path scaled_lob.db
 ```
-- Implements a live price–time priority book, inventory-based market-maker quoting, Hawkes-like sign memory, lognormal sizes, and cancellations.
+Implements: live price–time priority book, inventory-based MM quoting, Hawkes-like sign memory,
+lognormal sizes, cancellations, detailed snapshots.
 
 ### 4) Couple LLM News to the Market (optional)
+
 ```python
 from scaled_lob_generator import ScaledLOBGenerator, ScaledLOBConfig
 cfg = ScaledLOBConfig(scale_factor=10, simulation_days=1, symbols=['AAPL'], db_path='shock.db')
@@ -96,454 +106,75 @@ engine = ScaledLOBGenerator(cfg)
 engine.inject_news_signal('AAPL', sentiment=0.8, confidence=0.9)
 summary = engine.generate_scaled_data()
 ```
-Then generate plots with step (2).
-
-## ✅ What’s Calibrated and Why It Matters
-
-- **Order sizes**: Lognormal per agent type → realistic heavy tails
-- **Order arrivals**: Hawkes-like sign memory → order-sign autocorrelation
-- **Cancellations**: Agent-type rates → realistic top-of-book churn
-- **Market makers**: Inventory-based quoting → spreads emerge from quoting pressure
-- **News coupling**: LLM sentiment affects drift/vol with decay → realistic event responses
-- **Validation**: RTH-only, mid-to-mid 1-min bars; KS/EMD with 95% CIs
-
-## 🧪 Tips
-- For yfinance 1-min data, only the last ~30 days are available. If your simulation dates are older, use daily/5-min intervals or adjust the simulation date to a recent day.
-- Use `--val-start/--val-end` in `enhanced_orderbook_main.py` when you want explicit windows.
-- To compare multiple symbols, run `validation_viz.py` per symbol into separate outdirs.
-
-## 📁 Project Structure
-
-```
-clean_project/
-├── main.py                 # Main application entry point
-├── requirements.txt        # Python dependencies
-├── README.md              # This file
-├── src/                   # Core library modules
-│   ├── abides_llm_agents.py          # LLM-enhanced trading agents
-│   ├── abides_llm_config.py          # ABIDES configuration system
-│   └── enhanced_llm_abides_system.py # Enhanced LLM integration
-├── examples/              # Demo and example scripts
-│   └── simple_abides_llm_demo.py     # Main demonstration
-├── tests/                 # Test suites (to be added)
-└── docs/                  # Documentation (to be added)
-```
-
-## 🛠️ Quick Setup
-
-### 1. Clone and Setup Environment
-
-```bash
-# Navigate to project directory
-cd clean_project
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### 2. Configure Environment (Optional)
-
-Create a `.env` file for LLM integration:
-
-```bash
-# Create environment file
-echo "OPENAI_API_KEY=your-openai-api-key-here" > .env
-```
-
-**Note**: The system works in demo mode without API keys using mock LLM responses.
-
-### 3. Run the Application
-
-```bash
-# Basic demo
-python main.py --demo
-
-# Enhanced demo with order book recording
-python main.py --enhanced
-
-# Full ABIDES experiments suite
-python main.py --experiments
-
-# Test configuration
-python main.py --config
-
-# Interactive mode (shows all options)
-python main.py
-```
-
-## 🎯 Usage Examples
-
-### Basic Demo
-```bash
-python main.py --demo
-```
-
-### Enhanced Demo with Order Book Recording
-```bash
-python main.py --enhanced
-```
-
-### ABIDES Experiments Suite
-```bash
-python main.py --experiments
-```
-
-### Interactive Mode
-```bash
-python main.py
-# Follow the interactive menu to select options
-```
-
-### Direct Example Execution
-```bash
-python examples/simple_abides_llm_demo.py
-```
-
-## 🧪 Available Experiments
-
-The framework includes implementations of key ABIDES paper experiments:
-
-### Market Impact Study
-- Analyze how large orders affect market prices
-- Study relationship between order size and price impact
-- Generate event studies around impact trades
-
-### Co-location Benefits Analysis  
-- Examine trading advantages of low-latency connections
-- Compare performance across different latency configurations
-- Quantify the value of co-location in trading
-
-### Background Agent Validation
-- Validate that simulated agents produce realistic market behavior
-- Compare simulated vs. historical price movements
-- Analyze stylized facts (volatility clustering, fat tails, etc.)
-
-### LLM vs Traditional Agent Comparison
-- Compare performance of LLM-enhanced vs. algorithmic agents
-- Analyze strategy adaptation and news response capabilities
-- Study market efficiency implications
-
-## 📊 Data Export and Analysis
-
-The enhanced system provides comprehensive data export capabilities:
-
-### Order Book Data
-- Complete trade execution logs with timestamps
-- Order flow records with agent attribution
-- Market snapshots at regular intervals
-- Price impact analysis around significant trades
-
-### Agent Performance Data
-- Portfolio valuation over time
-- P&L tracking and risk metrics
-- Trading signal generation and execution
-- Strategy performance comparison
-
-### Market Microstructure Data
-- Bid-ask spread evolution
-- Volume-price relationships
-- Order book depth analysis
-- Stylized facts validation
-
-### Export Formats
-```bash
-# Data is automatically exported to CSV files:
-# - *_trades.csv: All executed trades
-# - *_orders.csv: Order history and status
-# - *_snapshots.csv: Order book snapshots
-# - *_agent_activity.csv: Agent decisions and performance
-# - *_news_analysis.csv: News sentiment and impact
-```
-
-## 📈 Large-Scale Data Generation
-
-The system includes powerful scaling capabilities to generate massive order book datasets:
-
-### Scaling Presets
-- **Light**: 10x scale, 5 symbols, 1 day → ~24,000 orders
-- **Medium**: 100x scale, 10 symbols, 7 days → ~3.4M orders  
-- **Heavy**: 500x scale, 20 symbols, 30 days → ~72M orders
-- **Custom**: Configure your own parameters
-
-### Example Performance
-```bash
-# Medium preset generated:
-Total Orders: 33,605,484
-Duration: 5 minutes
-Orders/sec: 109,945
-Output: Compressed CSV files
-```
-
-### Usage
-```bash
-# Run large-scale data generation
-python main.py --scale-data
-
-# Select from presets or configure custom scaling
-# Outputs compressed CSV files with:
-# - Realistic order flow patterns
-# - Multiple agent types (retail, institutional, HFT, market makers)
-# - Intraday trading patterns
-# - Price movements with volatility clustering
-```
-
-## 🤖 LLM Integration
-
-The system integrates LLMs in multiple ways:
-
-### 1. News Analysis
-- Parses market news and events
-- Analyzes sentiment and market impact
-- Generates trading signals based on news
-
-### 2. Trading Strategy
-- LLM agents reason about market conditions
-- Generate sophisticated trading decisions
-- Adapt strategies based on market feedback
-
-### 3. Multi-Agent Interaction
-- Multiple LLM agents with different strategies
-- Momentum traders, contrarian traders, neutral traders
-- Collaborative and competitive market dynamics
+Then generate plots using step (2).
 
 ## 🌐 Real-World Data Validation and News Ingestion
 
-The framework can ingest real market data and recent news to validate simulation quality against actual markets.
+The framework ingests real market data and news to validate simulations against actual markets.
 
 ### What it does
-- Fetches intraday OHLCV bars (e.g., 1-minute) for a symbol using `yfinance`
-- Optionally fetches recent news headlines for the symbol (publisher, title, link)
-- Aligns simulated trade timestamps to real market bars and computes error metrics
+- Fetches intraday OHLCV bars (1m preferred) using yfinance with interval fallback (1m → 5m → 15m → 1d)
+- Optionally fetches recent news headlines for the symbol
+- Aligns simulated timestamps with real bars; computes error metrics and distributional distances
 
 ### Metrics reported
-- Mean/median absolute price error in basis points (bps)
-- 95th percentile absolute error (bps)
-- Price bias (bps)
+- Mean/median/P95 absolute price error (bps); bias (bps)
+- KS statistic and 1D Earth Mover’s Distance (EMD) with 95% bootstrap CIs
 
-### How to run (Enhanced Order Book system)
-```bash
-# Quick end-to-end run with real-data validation (default 6h UTC window)
-python enhanced_orderbook_main.py --config quick_test --no-llm \
-  --validate-real --val-symbol AAPL
+### How to run (programmatic + CLI)
+- Enhanced Order Book optional validation: pass --validate-real --val-symbol <TICKER>
+- For standalone plots and metrics: use src/validation_viz.py as in step (2)
 
-# With an explicit UTC time window (ISO-8601)
-python enhanced_orderbook_main.py --config quick_test --no-llm \
-  --validate-real --val-symbol AAPL \
-  --val-start 2024-01-02T13:30:00Z --val-end 2024-01-02T19:30:00Z \
-  --val-interval 1m
-```
+### Modules
+- src/real_data_ingestion.py
+  - fetch_intraday_ohlcv(cfg): OHLCV via yfinance with fallback; annotates interval_used
+  - fetch_price_at_timestamp(symbol, ts, interval='1m', allow_fallback=True): nearest price for seeding
+  - fetch_recent_news(symbol): recent news items
+- src/llm_analysis_system.py
+  - LLMOrderBookAnalyzer.validate_against_real_market(...): orchestrates fetch-and-compare
+- src/validation_viz.py
+  - generate_plots(...): RTH filtering, cadence-aligned comparisons, KS/EMD with bootstrap
 
-Outputs:
-- Validation report saved to `enhanced_orderbook_output/reports/real_validation.txt`
-- Contains summary metrics (mean/median/p95 abs error in bps, bias) comparing simulated trade prices vs real bars
+## ✅ What’s Calibrated and Why It Matters
 
-### Modules added
-- `src/real_data_ingestion.py`
-  - `fetch_intraday_ohlcv(cfg)`: fetches OHLCV bars via `yfinance`
-  - `fetch_recent_news(symbol)`: fetches recent news items for a symbol
-  - `align_simulation_with_real_market(sim_trades, real_ohlcv)`: aligns timestamps, computes price error (bps)
-  - `basic_validation_report(merged)`: summarizes error metrics
-  - `fetch_and_compare(symbol, sim_trades, start, end, interval)`: convenience wrapper
-- `src/llm_analysis_system.py`
-  - `LLMOrderBookAnalyzer.validate_against_real_market(...)`: internal helper used by the enhanced pipeline
+- Order sizes: lognormal per agent type → realistic heavy tails
+- Order arrivals: Hawkes-like sign memory → order-sign autocorrelation
+- Cancellations: agent-type rates → realistic top-of-book churn
+- Market makers: inventory-based quoting → emergent spreads
+- News coupling: sentiment affects drift/vol with exponential decay
+- Validation: RTH-only (minute-level), mid-to-mid, KS/EMD with CIs
 
-Notes:
-- Internet access is required for fetching real data
-- `yfinance` is installed via `requirements.txt`
+## 🧪 Tips
 
-## 📊 Sample Output
+- yfinance 1-min data only covers ~last 30 days. For older dates, use 5m/15m/daily fallback or set a recent --start-utc.
+- validation_viz.py infers cadence from interval_used and applies RTH only for minute-level data.
+- To specify a comparison window explicitly, use --val-start/--val-end (UTC ISO-8601) in enhanced_orderbook_main.py or pass start/end to validation_viz.py.
+- Set OPENAI_API_KEY in your environment or .env for real LLM calls.
 
-```
-🚀 ABIDES-LLM Integration Demo
-===========================
-⚠️  No OpenAI API key found (using mock LLM)
-LLM Enhancement: Mock Mode
+## 🤖 LLM Integration
 
-✓ NewsAnalyzer initialized for symbols: ['ABM']
-✓ MomentumTrader initialized: momentum strategy, risk=0.8
-✓ ContrarianTrader initialized: contrarian strategy, risk=0.6
-✓ NeutralTrader initialized: neutral strategy, risk=0.4
-
---- Event 1/3 ---
-📰 NEWS: Partnership announced for ambitious initiative
-   Category: product_launch
-   Sentiment: -0.72
-   Symbols: ['ABM']
-[MomentumTrader] Generated signal: SELL 0.37
-[MomentumTrader] EXECUTED: SELL 1872 shares at $104.35
-[ContrarianTrader] Generated signal: BUY 0.22
-[ContrarianTrader] EXECUTED: BUY 1191 shares at $98.38
-
-📊 SIMULATION RESULTS
-============================================================
-Events Processed: 3
-Total Signals Generated: 9
-LLM Enhancement: Disabled
-
-Trader Performance:
-  MomentumTrader:
-    Cash: $9,919,473.82
-    Shares: 5,800
-    Total Value: $10,499,473.82
-    P&L: $-526.18 (-0.01%)
-    Trades: 3
-  ContrarianTrader:
-    Cash: $10,048,415.76
-    Shares: 4,569
-    Total Value: $10,505,315.76
-    P&L: $5,315.76 (+0.05%)
-    Trades: 3
-```
-
-## 🔧 Configuration
-
-### System Requirements
-- Python 3.8+
-- 4GB+ RAM recommended
-- Internet connection (for LLM API calls)
-
-### Core Dependencies
-- `numpy>=1.21.0` - Numerical computing
-- `pandas>=1.5.0` - Data manipulation
-- `matplotlib>=3.5.0` - Visualization
-- `openai>=1.0.0` - LLM integration
-- `python-dotenv>=0.20.0` - Environment management
-- `yfinance>=0.2.40` - Real market data (OHLCV/news) ingestion
-
-### Optional Dependencies
-- `plotly>=5.10.0` - Advanced visualization
-- `sqlalchemy>=1.4.0` - Database integration
-- `tiktoken>=0.5.0` - Token counting for LLM
-
-## 🎨 Architecture
-
-### Core Components
-
-1. **LLM Agents** (`src/abides_llm_agents.py`)
-   - `ABIDESLLMNewsAnalyzer`: Analyzes market news
-   - `ABIDESLLMTradingAgent`: Makes trading decisions
-   - `ABIDESLLMMarketMaker`: Provides market liquidity
-
-2. **Configuration System** (`src/abides_llm_config.py`)
-   - ABIDES-compatible configuration
-   - Agent setup and initialization
-   - Market structure definition
-
-3. **Enhanced System** (`src/enhanced_llm_abides_system.py`)
-   - Advanced LLM reasoning
-   - Market sentiment analysis
-   - News event processing
-
-### Data Flow
-
-```
-Market News → LLM Analysis → Trading Signals → ABIDES Simulation → Results
-```
-
-## 🚀 Advanced Usage
-
-### Custom Trading Strategies
-
-```python
-from src.abides_llm_agents import ABIDESLLMTradingAgent
-
-# Create custom trading agent
-agent = ABIDESLLMTradingAgent(
-    id=1,
-    name="CustomTrader",
-    strategy="momentum",
-    risk_tolerance=0.7,
-    llm_config={
-        "model": "gpt-3.5-turbo",
-        "temperature": 0.8
-    }
-)
-```
-
-### Custom Market Scenarios
-
-```python
-from src.abides_llm_config import build_config
-
-# Create custom market configuration
-config = build_config(
-    symbols=['AAPL', 'GOOGL', 'MSFT'],
-    num_llm_traders=5,
-    end_time="16:00:00",
-    llm_enabled=True
-)
-```
-
-## 🔬 Research Applications
-
-This framework is designed for:
-
-- **Algorithmic Trading Research**: Test LLM-based trading strategies
-- **Market Microstructure Studies**: Analyze agent interactions
-- **News Impact Analysis**: Study how news affects trading behavior
-- **Multi-Agent Systems**: Research collaborative AI trading
-- **Risk Management**: Test risk models with AI agents
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📖 Documentation
-
-- **Quick Start**: This README
-- **API Reference**: See docstrings in source files
-- **Examples**: Check `examples/` directory
-- **Configuration**: See `src/abides_llm_config.py`
+- LLM usage is enabled automatically when OPENAI_API_KEY is set.
+- The system can run in LLM-disabled mode for cost-free testing (use --no-llm).
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+- Module import issues:
+  ```bash
+  export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
+  ```
+- yfinance 1m unavailable for older dates: the system falls back to 5m/15m/1d and records interval_used; plots and metrics adjust accordingly.
+- Plots misaligned: ensure recent start times, verify outdir, confirm interval_used and cadence in metrics_<SYMBOL>.txt.
 
-**"Module not found" errors**:
-```bash
-export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
-```
+## 🤝 Contributing
 
-**OpenAI API errors**:
-- Check your API key in `.env`
-- The system works in demo mode without API keys
+1. Create a feature branch
+2. Make changes and add tests if applicable
+3. Open a pull request
 
-**Memory issues**:
-- Reduce number of agents in configuration
-- Use smaller time windows for simulation
+## 📜 License and Acknowledgments
 
-### Getting Help
+- ABIDES Framework: JPMorgan Chase & Co.
+- OpenAI: GPT models for LLM integration
+- Python Scientific Stack
 
-1. Check this README
-2. Review error messages carefully
-3. Try running `python main.py --config` to test setup
-4. Use demo mode if LLM APIs are unavailable
-
-## 📜 License
-
-This project is open source. See individual file headers for specific license information.
-
-## 🙏 Acknowledgments
-
-- **ABIDES Framework**: JPMorgan Chase & Co.
-- **OpenAI**: GPT models for LLM integration
-- **Python Community**: Scientific computing libraries
-
-## 📞 Contact
-
-For questions or issues:
-- Check the documentation
-- Review example code
-- Test with demo mode first
-
----
-
-**Happy Trading with AI! 🤖📈**
+Happy Trading with AI! 🤖📈
