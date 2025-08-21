@@ -20,7 +20,7 @@ import importlib
 
 # Require ABIDES imports
 try:
-    TradingAgent = importlib.import_module("abides_core.agent.trading_agent").TradingAgent
+    TradingAgent = importlib.import_module("abides_markets.agents.trading_agent").TradingAgent
     Message = importlib.import_module("abides_core.message.message").Message
     util = importlib.import_module("abides_core.utils.util")
 except Exception:
@@ -31,7 +31,7 @@ except Exception:
         util = importlib.import_module("util.util")
     except Exception as e:
         raise ImportError(
-            "ABIDES Core not found. Please install abides-core and abides-markets "
+            "ABIDES Core/Markets not found. Please install abides-core and abides-markets "
             "and ensure they are on PYTHONPATH.\n"
             "Example: git clone https://github.com/abides-sim/abides-core && pip install -e abides-core; "
             "git clone https://github.com/abides-sim/abides-markets && pip install -e abides-markets"
