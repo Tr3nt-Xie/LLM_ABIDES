@@ -1,3 +1,5 @@
 Interval used: 1d | Cadence: 1D
-KS: nan (p=nan)
-EMD: nan
+KS: 1.0 (p=1.0)
+KS 95% CI: (1.0, 1.0)
+EMD: 0.2023501444991247
+EMD 95% CI: (0.2023501444991247, 0.2023501444991247)

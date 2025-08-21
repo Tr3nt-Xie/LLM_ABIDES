@@ -3,9 +3,9 @@
 
 ⏱️ EXECUTION OVERVIEW
 ----------------------------------------
-Start Time: 2025-08-04 02:17:47
-End Time: 2025-08-04 02:19:43
-Total Duration: 0:01:56.007607
+Start Time: 2025-08-21 22:14:57
+End Time: 2025-08-21 22:21:08
+Total Duration: 0:06:10.704755
 Status: ❌ FAILED
 
 ⚙️ CONFIGURATION
@@ -20,40 +20,40 @@ Max Depth Levels: 10
 
 📊 GENERATION RESULTS
 ----------------------------------------
-Total Orders: 14,157
-Total Trades: 756
-Total Snapshots: 46,800
-Database Size: 74.7734375 MB
-Orders/Second: 122.1
-Fill Rate: 5.3%
+Total Orders: 251,495
+Total Trades: 75,570
+Total Snapshots: 46,992
+Database Size: 216.96875 MB
+Orders/Second: 678.6
+Fill Rate: 30.0%
 
 📈 DATABASE ANALYSIS
 ----------------------------------------
-Order Records: 14,157
-Trade Records: 756
-Snapshot Records: 46,800
+Order Records: 251,495
+Trade Records: 75,570
+Snapshot Records: 46,992
 
 Order Distribution by Symbol:
-  GOOGL: 7,169 orders
-  AAPL: 6,988 orders
+  AAPL: 125,916 orders
+  GOOGL: 125,579 orders
 
 Order Distribution by Agent Type:
-  hft: 13,408 orders
-  market_maker: 549 orders
-  institutional: 117 orders
-  retail: 83 orders
+  hft: 244,621 orders
+  market_maker: 5,874 orders
+  institutional: 645 orders
+  retail: 355 orders
 
 📁 OUTPUT FILES
 ----------------------------------------
 Database: small_scale_lob.db
 Output Directory: /workspace/scaled_lob_output
-Reports: 0 generated
+Reports: 1 generated
 
 ⚡ PERFORMANCE INSIGHTS
 ----------------------------------------
-Total Records Generated: 61,713
-Records per Second: 532.0
-Database Efficiency: 825 records/MB
+Total Records Generated: 374,057
+Records per Second: 1,009.0
+Database Efficiency: 1,724 records/MB
 
 🎯 NEXT STEPS
 ----------------------------------------
@@ -64,4 +64,4 @@ Database Efficiency: 825 records/MB
 5. Compare with real market data for validation
 
 ================================================================================
-Report generated on 2025-08-04 02:19:43
+Report generated on 2025-08-21 22:21:08
