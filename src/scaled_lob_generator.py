@@ -305,6 +305,7 @@ class AdvancedAgent:
 		self.active_orders = {}
 		self.order_history = []
 		self.mm_last_quote_time: Dict[str, datetime] = {}
+		self.order_counter = 0  # Unique order counter
 		
 		# Behavioral parameters
 		self.setup_agent_profile()
@@ -485,9 +486,10 @@ class AdvancedAgent:
 		display_qty, hidden_qty = self._determine_display_strategy(quantity)
 		execution_algo = self._choose_execution_algorithm(quantity, market_data)
 		
-		# Generate unique order ID with timestamp precision
+		# Generate unique order ID with timestamp precision and counter
+		self.order_counter += 1
 		microsecond = current_time.microsecond + random.randint(0, 999)
-		order_id = f"ORD_{self.agent_type}_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}"
+		order_id = f"ORD_{self.agent_type}_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}_{self.order_counter:06d}"
 		
 		# Update last order time
 		self.last_order_time[symbol] = current_time
@@ -677,7 +679,8 @@ class AdvancedAgent:
 		price = bid if side == "BUY" else ask
 		quantity = self._determine_order_size(symbol, side, market_data)
 		microsecond = current_time.microsecond + random.randint(0, 999)
-		order_id = f"MMQ_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}"
+		self.order_counter += 1
+		order_id = f"MMQ_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}_{self.order_counter:06d}"
 		return {
 			"order_id": order_id,
 			"timestamp": current_time,
