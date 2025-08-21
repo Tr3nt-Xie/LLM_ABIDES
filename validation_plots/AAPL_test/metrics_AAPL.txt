@@ -1,0 +1,3 @@
+Interval used: 1m | Cadence: 1min
+KS: None (p=None)
+EMD: None
