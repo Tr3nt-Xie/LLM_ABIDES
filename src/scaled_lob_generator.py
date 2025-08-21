@@ -487,7 +487,8 @@ class AdvancedAgent:
 		
 		# Generate unique order ID with timestamp precision
 		microsecond = current_time.microsecond + random.randint(0, 999)
-		order_id = f"ORD_{self.agent_type}_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}"
+		unique_suffix = uuid.uuid4().hex[:6]
+		order_id = f"ORD_{self.agent_type}_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}_{unique_suffix}"
 		
 		# Update last order time
 		self.last_order_time[symbol] = current_time
@@ -677,7 +678,8 @@ class AdvancedAgent:
 		price = bid if side == "BUY" else ask
 		quantity = self._determine_order_size(symbol, side, market_data)
 		microsecond = current_time.microsecond + random.randint(0, 999)
-		order_id = f"MMQ_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}"
+		unique_suffix = uuid.uuid4().hex[:6]
+		order_id = f"MMQ_{self.agent_id}_{current_time.strftime('%Y%m%d_%H%M%S')}_{microsecond:06d}_{unique_suffix}"
 		return {
 			"order_id": order_id,
 			"timestamp": current_time,
@@ -983,7 +985,7 @@ class ScaledLOBGenerator:
 			spread = base_spread * (1 + state["volatility"] * 10)
 			
 			state["spread"] = spread
-			state["spread_bps"] = (spread / new_price) * 10000
+			state["spread_bps"] = (spread / new_price) * 10000 if new_price > 0 else 0.0
 			state["best_bid"] = new_price - spread / 2
 			state["best_ask"] = new_price + spread / 2
 			
