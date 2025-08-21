@@ -3,57 +3,56 @@
 
 ⏱️ EXECUTION OVERVIEW
 ----------------------------------------
-Start Time: 2025-08-04 02:17:47
-End Time: 2025-08-04 02:19:43
-Total Duration: 0:01:56.007607
+Start Time: 2025-08-21 22:26:11
+End Time: 2025-08-21 22:36:45
+Total Duration: 0:10:33.625747
 Status: ❌ FAILED
 
 ⚙️ CONFIGURATION
 ----------------------------------------
-Scale Factor: 10x
-Total Agents: 200
-Symbols: AAPL, GOOGL
+Scale Factor: 5x
+Total Agents: 250
+Symbols: AAPL
 Simulation Days: 1
-Database Path: small_scale_lob.db
-Snapshot Frequency: 1000ms
-Max Depth Levels: 10
+Database Path: test_lob.db
+Snapshot Frequency: 500ms
+Max Depth Levels: 20
 
 📊 GENERATION RESULTS
 ----------------------------------------
-Total Orders: 14,157
-Total Trades: 756
+Total Orders: 224,405
+Total Trades: 49,092
 Total Snapshots: 46,800
-Database Size: 74.7734375 MB
-Orders/Second: 122.1
-Fill Rate: 5.3%
+Database Size: 166.73046875 MB
+Orders/Second: 354.3
+Fill Rate: 21.9%
 
 📈 DATABASE ANALYSIS
 ----------------------------------------
-Order Records: 14,157
-Trade Records: 756
+Order Records: 224,405
+Trade Records: 49,092
 Snapshot Records: 46,800
 
 Order Distribution by Symbol:
-  GOOGL: 7,169 orders
-  AAPL: 6,988 orders
+  AAPL: 224,405 orders
 
 Order Distribution by Agent Type:
-  hft: 13,408 orders
-  market_maker: 549 orders
-  institutional: 117 orders
-  retail: 83 orders
+  hft: 219,264 orders
+  market_maker: 4,443 orders
+  institutional: 487 orders
+  retail: 211 orders
 
 📁 OUTPUT FILES
 ----------------------------------------
-Database: small_scale_lob.db
+Database: test_lob.db
 Output Directory: /workspace/scaled_lob_output
-Reports: 0 generated
+Reports: 1 generated
 
 ⚡ PERFORMANCE INSIGHTS
 ----------------------------------------
-Total Records Generated: 61,713
-Records per Second: 532.0
-Database Efficiency: 825 records/MB
+Total Records Generated: 320,297
+Records per Second: 505.5
+Database Efficiency: 1,921 records/MB
 
 🎯 NEXT STEPS
 ----------------------------------------
@@ -64,4 +63,4 @@ Database Efficiency: 825 records/MB
 5. Compare with real market data for validation
 
 ================================================================================
-Report generated on 2025-08-04 02:19:43
+Report generated on 2025-08-21 22:36:45
