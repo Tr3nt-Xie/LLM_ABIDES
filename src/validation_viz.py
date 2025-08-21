@@ -140,7 +140,25 @@ def _infer_time_window_from_db(db_path: str, symbol: str) -> Tuple[Optional[pd.T
 		return (None, None)
 
 
-def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str) -> None:
+def _clip_to_window(df: pd.DataFrame, ts_col: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
+	if df is None or df.empty:
+		return df
+	d = df.copy()
+	d[ts_col] = pd.to_datetime(d[ts_col], utc=True, errors='coerce')
+	mask = (d[ts_col] >= pd.to_datetime(start, utc=True)) & (d[ts_col] <= pd.to_datetime(end, utc=True))
+	return d.loc[mask]
+
+
+def _convert_tz_for_plot(series: pd.Series, tz_name: str) -> pd.Series:
+	# Convert a datetime Series (UTC) to the requested timezone for display
+	ts = pd.to_datetime(series, utc=True, errors='coerce')
+	try:
+		return ts.dt.tz_convert(tz_name)
+	except Exception:
+		return ts
+
+
+def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str, display_tz: str = 'America/New_York') -> None:
     if sim_snap.empty or real_ohlcv.empty:
         return
     sim = sim_snap.copy()
@@ -159,11 +177,17 @@ def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out:
 
     real = real_ohlcv[['timestamp', 'close']].copy()
 
+    # Convert display timezone
+    sim_price = sim_price.copy()
+    real = real.copy()
+    sim_price['ts_display'] = _convert_tz_for_plot(sim_price['timestamp'], display_tz)
+    real['ts_display'] = _convert_tz_for_plot(real['timestamp'], display_tz)
+
     fig, ax = plt.subplots(figsize=(12, 5))
-    ax.plot(sim_price['timestamp'], sim_price['price'], label=f'Sim {symbol} (mid)', alpha=0.7)
-    ax.plot(real['timestamp'], real['close'], label=f'Real {symbol} (close)', alpha=0.7)
+    ax.plot(sim_price['ts_display'], sim_price['price'], label=f'Sim {symbol} (mid)', alpha=0.7)
+    ax.plot(real['ts_display'], real['close'], label=f'Real {symbol} (close)', alpha=0.7)
     ax.set_title(f"Price Timeseries: {symbol} (Sim vs Real)")
-    ax.set_xlabel('Time (UTC)')
+    ax.set_xlabel(f'Time ({display_tz})')
     ax.set_ylabel('Price')
     ax.legend()
     fig.tight_layout()
@@ -171,7 +195,7 @@ def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out:
     plt.close(fig)
 
 
-def plot_price_timeseries_aligned(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str, resample_rule: str, apply_rth: bool) -> None:
+def plot_price_timeseries_aligned(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str, resample_rule: str, apply_rth: bool, display_tz: str = 'America/New_York') -> None:
 	"""Plot sim vs real price aligned to the same cadence and RTH handling."""
 	if sim_snap.empty or real_ohlcv.empty:
 		return
@@ -198,11 +222,15 @@ def plot_price_timeseries_aligned(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFra
 	real_rs = _resample_mid(real_mid, 'mid', 'timestamp', resample_rule)
 	if sim_rs.empty or real_rs.empty:
 		return
+	# Convert display timezone
+	sim_rs = sim_rs.copy(); real_rs = real_rs.copy()
+	sim_rs['ts_display'] = _convert_tz_for_plot(sim_rs['timestamp'], display_tz)
+	real_rs['ts_display'] = _convert_tz_for_plot(real_rs['timestamp'], display_tz)
 	fig, ax = plt.subplots(figsize=(12, 5))
-	ax.plot(sim_rs['timestamp'], sim_rs['mid'], label=f'Sim {symbol} (mid, {resample_rule})', alpha=0.7)
-	ax.plot(real_rs['timestamp'], real_rs['mid'], label=f'Real {symbol} (close, {resample_rule})', alpha=0.7)
+	ax.plot(sim_rs['ts_display'], sim_rs['mid'], label=f'Sim {symbol} (mid, {resample_rule})', alpha=0.7)
+	ax.plot(real_rs['ts_display'], real_rs['mid'], label=f'Real {symbol} (close, {resample_rule})', alpha=0.7)
 	ax.set_title(f"Price Timeseries (Aligned): {symbol}")
-	ax.set_xlabel('Time (UTC)')
+	ax.set_xlabel(f'Time ({display_tz})')
 	ax.set_ylabel('Price')
 	ax.legend()
 	fig.tight_layout()
@@ -446,10 +474,13 @@ def _interval_to_rule(interval_used: str) -> Tuple[str, bool]:
 	return ('1min', True)
 
 
-def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, outdir: str) -> Dict[str, Any]:
+def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, outdir: str, display_tz: str = 'America/New_York') -> Dict[str, Any]:
 	out = Path(outdir)
 	_ensure_outdir(out)
 	frames = load_simulated_frames(db_path, symbol)
+	# Clip sim frames to requested window to avoid plotting far-out data
+	frames['snapshots'] = _clip_to_window(frames['snapshots'], 'timestamp', start, end)
+	frames['trades'] = _clip_to_window(frames['trades'], 'timestamp', start, end)
 	cfg = MarketFetchConfig(symbol=symbol, start=start, end=end, interval='1m')
 	real = fetch_intraday_ohlcv(cfg)
 	interval_used = real.attrs.get('interval_used', '1m') if isinstance(real, pd.DataFrame) else '1m'
@@ -474,9 +505,9 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
 	# Choose input for plotting: snapshots if available, otherwise trades (price series)
 	sim_for_plots = frames['snapshots'] if not frames['snapshots'].empty else frames['trades']
 	# Plots
-	plot_price_timeseries(sim_for_plots, real_use, out, symbol)
+	plot_price_timeseries(sim_for_plots, real_use, out, symbol, display_tz=display_tz)
 	# Also save an aligned cadence plot for visual correctness
-	plot_price_timeseries_aligned(sim_for_plots, real, out, symbol, resample_rule, apply_rth)
+	plot_price_timeseries_aligned(sim_for_plots, real, out, symbol, resample_rule, apply_rth, display_tz=display_tz)
 	plot_return_distributions(frames['snapshots'], real_use, out, symbol)
 	plot_autocorrelations(frames['snapshots'], out, symbol)
 	# Only generate intraday U-shape plots when we actually have intraday data
@@ -519,6 +550,7 @@ def main():
     p.add_argument('--outdir', default='validation_plots', help='Directory to save plots')
     p.add_argument('--val-start', default=None, help='UTC ISO start (default: infer from DB)')
     p.add_argument('--val-end', default=None, help='UTC ISO end (default: infer from DB)')
+    p.add_argument('--display-tz', default='America/New_York', help='Timezone for x-axis display (e.g., America/New_York)')
     args = p.parse_args()
 
     if args.val_start and args.val_end:
@@ -543,7 +575,7 @@ def main():
                 end = now
                 start = end - timedelta(hours=6)
 
-    generate_plots(args.db, args.symbol, start, end, args.outdir)
+    generate_plots(args.db, args.symbol, start, end, args.outdir, display_tz=args.display_tz)
     print(f"✅ Plots saved to: {args.outdir}")
 
 
