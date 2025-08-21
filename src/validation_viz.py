@@ -33,8 +33,6 @@ from real_data_ingestion import (
 )
 
 from scipy import stats
-import sqlite3
-import pytz
 
 
 def _ensure_outdir(path: Path) -> None:
@@ -276,7 +274,7 @@ def plot_market_impact_curve(sim_trades: pd.DataFrame, out: Path, symbol: str) -
         return
     tr['prev_price'] = tr['price'].shift(1)
     tr['impact_bps'] = ((tr['price'] - tr['prev_price']) / tr['prev_price'] * 10000).replace([np.inf, -np.inf], np.nan)
-    impact = tr.groupby('size_bucket')['impact_bps'].median().dropna()
+    impact = tr.groupby('size_bucket', observed=True)['impact_bps'].median().dropna()
     fig, ax = plt.subplots(figsize=(8, 4))
     impact.plot(kind='bar', ax=ax)
     ax.set_title(f'Market Impact vs Trade Size: {symbol}')
@@ -452,7 +450,16 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
 	snap = frames['snapshots']
 	if not snap.empty:
 		snap_use = _filter_rth(snap, 'timestamp') if apply_rth else snap
-		sim_mid_series = _resample_mid(snap_use.rename(columns={'mid_price': 'mid'}), 'mid', 'timestamp', resample_rule)
+		# Ensure a 'mid' column exists for resampling
+		if 'mid_price' in snap_use.columns:
+			sim_mid_input = snap_use[['timestamp', 'mid_price']].rename(columns={'mid_price': 'mid'})
+		elif {'best_bid', 'best_ask'}.issubset(snap_use.columns):
+			tmp = snap_use.copy()
+			tmp['mid'] = (tmp['best_bid'] + tmp['best_ask']) / 2.0
+			sim_mid_input = tmp[['timestamp', 'mid']]
+		else:
+			sim_mid_input = pd.DataFrame(columns=['timestamp', 'mid'])
+		sim_mid_series = _resample_mid(sim_mid_input, 'mid', 'timestamp', resample_rule) if not sim_mid_input.empty else pd.DataFrame(columns=['timestamp', 'mid'])
 	else:
 		sim_mid_series = pd.DataFrame(columns=['timestamp', 'mid'])
 	real_use = _filter_rth(real, 'timestamp') if (not real.empty and apply_rth) else real
@@ -462,11 +469,13 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
 	plot_price_timeseries_aligned(frames['snapshots'], real, out, symbol, resample_rule, apply_rth)
 	plot_return_distributions(frames['snapshots'], real_use, out, symbol)
 	plot_autocorrelations(frames['snapshots'], out, symbol)
-	plot_intraday_volume(frames['trades'], real_use, out, symbol)
+	# Only generate intraday U-shape plots when we actually have intraday data
+	if apply_rth:
+		plot_intraday_volume(frames['trades'], real_use, out, symbol)
+		plot_intraday_volatility(frames['snapshots'], real_use, out, symbol)
 	plot_spread_distribution(frames['snapshots'], out, symbol)
 	plot_order_sign_acf(frames['trades'], out, symbol)
 	plot_market_impact_curve(frames['trades'], out, symbol)
-	plot_intraday_volatility(frames['snapshots'], real_use, out, symbol)
 	# Metrics at cadence
 	metrics = {}
 	try:
