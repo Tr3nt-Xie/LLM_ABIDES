@@ -3,18 +3,18 @@
 
 🎯 EXECUTIVE SUMMARY
 ------------------------------
-Overall Realism Score: 3.8/10
-Confidence Level: 16.9%
+Overall Realism Score: 2.8/10
+Confidence Level: 16.8%
 
-Simulation shows 3.8/10 realism based on similarity scores and stylized facts compliance.
+Simulation shows 2.8/10 realism based on similarity scores and stylized facts compliance.
 
 📈 SIMILARITY TO REAL MARKETS
 ------------------------------
 ❌ Spread Similarity: 0.0%
 ❌ Order Size Similarity: 22.8%
 ❌ Market Impact Similarity: 0.0%
-⚠️ Fill Rate Realism: 44.8%
-❌ Overall Similarity: 16.9%
+⚠️ Fill Rate Realism: 44.6%
+❌ Overall Similarity: 16.8%
 
 📐 STYLIZED FACTS COMPLIANCE
 ------------------------------
@@ -22,21 +22,21 @@ Simulation shows 3.8/10 realism based on similarity scores and stylized facts co
 ❌ Volatility Clustering: Fail
 ❌ Mean Reversion: Fail
 ✅ Positive Spreads: Pass
-✅ U Shaped Volume: Pass
+❌ U Shaped Volume: Fail
 
 📊 KEY STATISTICS
 ------------------------------
-Total Orders: 30,446
-Total Trades: 6,136
-Fill Rate: 20.2%
+Total Orders: 35,936
+Total Trades: 7,214
+Fill Rate: 20.1%
 Average Spread: 10.0 bps
-Average Market Impact: 7.86 bps
+Average Market Impact: 7.90 bps
 
 🔬 MICROSTRUCTURE ANALYSIS
 ------------------------------
 Order Flow Imbalance Ratio: 0.56
 Market Impact by Trade Size:
-  Small: 7.86 bps
+  Small: 7.90 bps
   Medium: nan bps
   Large: nan bps
 
@@ -45,6 +45,7 @@ Market Impact by Trade Size:
 1. Adjust bid-ask spread generation to match real market spreads more closely
 2. Calibrate order size distribution to better match real trading patterns
 3. Implement volatility clustering in price generation model
+4. Add realistic intraday volume patterns (U-shaped)
 
 🎯 REAL MARKET BENCHMARKS
 ------------------------------
@@ -55,4 +56,4 @@ Medium Orders: 25%
 Large Orders: 5%
 
 ============================================================
-Report generated on 2025-08-21 20:40:44
+Report generated on 2025-08-21 22:10:49
