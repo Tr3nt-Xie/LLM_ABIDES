@@ -27,6 +27,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
+# Optional real-world price seeding
+try:
+	from real_data_ingestion import fetch_price_at_timestamp as _fetch_price_at_timestamp
+except Exception:
+	_fetch_price_at_timestamp = None
+
 # Load environment variables
 try:
     from dotenv import load_dotenv
@@ -436,6 +442,14 @@ class EnhancedOrderBookDB:
         for symbol in self.config.symbols:
             # Initialize with some market depth
             price = self.config.initial_prices[symbol]
+            # Try to seed from real-world price at start time
+            if _fetch_price_at_timestamp is not None:
+                try:
+                    p, meta = _fetch_price_at_timestamp(symbol, self.current_time, interval="1m", allow_fallback=True)
+                    if p is not None:
+                        price = float(p)
+                except Exception:
+                    pass
             spread = price * 0.001
             
             self.market_data[symbol].update({

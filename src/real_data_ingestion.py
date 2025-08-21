@@ -85,6 +85,30 @@ def fetch_recent_news(symbol: str, max_items: int = 50) -> pd.DataFrame:
 	return pd.DataFrame(rows)
 
 
+def fetch_price_at_timestamp(symbol: str, at_utc: datetime, interval: str = "1m", allow_fallback: bool = True) -> Tuple[Optional[float], Dict[str, Any]]:
+	"""Fetch the real-world price nearest to a UTC timestamp.
+	Returns (price, metadata) where price may be None if unavailable.
+	Metadata includes: interval_used, source_row_timestamp.
+	"""
+	# Build a small window around the timestamp
+	at = pd.to_datetime(at_utc, utc=True)
+	window_start = (at - pd.Timedelta(days=2)).to_pydatetime()
+	window_end = (at + pd.Timedelta(days=1)).to_pydatetime()
+	cfg = MarketFetchConfig(symbol=symbol, start=window_start, end=window_end, interval=interval, allow_fallback=allow_fallback)
+	df = fetch_intraday_ohlcv(cfg)
+	if df is None or df.empty:
+		return None, {"interval_used": None, "source_row_timestamp": None}
+	# Find the last bar at or before the timestamp; if none, take the earliest after
+	df = df.sort_values('timestamp')
+	df_before = df[df['timestamp'] <= at]
+	row = df_before.iloc[-1] if not df_before.empty else (df.iloc[0] if len(df) else None)
+	if row is None:
+		return None, {"interval_used": df.attrs.get('interval_used'), "source_row_timestamp": None}
+	price = float(row['close']) if 'close' in row else None
+	meta = {"interval_used": df.attrs.get('interval_used'), "source_row_timestamp": pd.to_datetime(row['timestamp']).isoformat()}
+	return price, meta
+
+
 def align_simulation_with_real_market(
 	sim_trades: pd.DataFrame,
 	real_ohlcv: pd.DataFrame,
