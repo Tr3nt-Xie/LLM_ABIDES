@@ -459,6 +459,10 @@ class EnhancedOrderBookDB:
                     pass
             spread = price * 0.001
             
+            # Ensure starting state uses the seeded price
+            self.last_trade_prices[symbol] = price
+            self.market_data[symbol]["fair_value"] = price
+            
             self.market_data[symbol].update({
                 "last_update": self.current_time,
                 "volume_today": 0,
@@ -575,40 +579,37 @@ class EnhancedOrderBookDB:
         if minute_orders:
             self._process_orders_batch(minute_orders)
     
-    def _update_market_prices(self):
+    def _update_market_prices(self, dt: float = 1.0):
         """Update market prices with realistic movement patterns"""
         for symbol in self.config.symbols:
             current_price = self.last_trade_prices[symbol]
             volatility = self.config.volatility_per_symbol.get(symbol, 0.02)
             
-            # Generate price movement with multiple components
-            dt = 1.0 / (252 * 24 * 60)  # 1 minute in years
-            
-            # Random walk component
+            # Random price movement component (Geometric Brownian Motion inspired)
             random_shock = np.random.normal(0, volatility * np.sqrt(dt))
             
             # Mean reversion component
-            fair_value = self.config.initial_prices[symbol]
-            mean_reversion = 0.1 * (fair_value - current_price) / fair_value * dt
+            fair_value = self.market_data[symbol].get('fair_value', self.config.initial_prices[symbol])
+            mean_reversion = 0.1 * (fair_value - current_price) / max(fair_value, 1e-9) * dt
             
             # Momentum component based on recent trades
-            momentum = 0.0
-            if symbol in self.market_data:
-                momentum = self.market_data[symbol].get("price_change", 0.0) * 0.1
+            momentum = self.market_data[symbol].get('price_change', 0.0) * 0.05
             
             # Combine components
-            total_change = random_shock + mean_reversion + momentum
-            new_price = max(0.01, current_price * (1 + total_change))
+            drift = mean_reversion + momentum
+            new_price = max(0.01, current_price * (1 + drift + random_shock))
+            new_price = float(round(new_price, 2))
             
             # Update market data
-            price_change = (new_price - current_price) / current_price
+            price_change = (new_price - current_price) / max(current_price, 1e-9)
             self.last_trade_prices[symbol] = new_price
             self.market_data[symbol]["price_change"] = price_change
             self.market_data[symbol]["fair_value"] = fair_value
             
             # Update daily stats
-            self.market_data[symbol]["high_today"] = max(self.market_data[symbol]["high_today"], new_price)
-            self.market_data[symbol]["low_today"] = min(self.market_data[symbol]["low_today"], new_price)
+            data = self.market_data[symbol]
+            data["high_today"] = max(data["high_today"], new_price)
+            data["low_today"] = min(data["low_today"], new_price)
     
     def _process_orders_batch(self, orders: List[Dict]):
         """Process a batch of orders and store in database"""
