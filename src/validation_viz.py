@@ -146,12 +146,16 @@ def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out:
     sim = sim_snap.copy()
     sim['timestamp'] = pd.to_datetime(sim['timestamp'], utc=True, errors='coerce')
     sim = sim.dropna(subset=['timestamp'])
-    # Prefer mid_price if available, else best bid/ask mid
+    # Prefer mid_price if available, else best bid/ask mid, else 'price' column
     if 'mid_price' in sim.columns:
         sim_price = sim[['timestamp', 'mid_price']].rename(columns={'mid_price': 'price'})
-    else:
+    elif {'best_bid', 'best_ask'}.issubset(sim.columns):
         sim['price'] = (sim.get('best_bid') + sim.get('best_ask')) / 2.0
         sim_price = sim[['timestamp', 'price']]
+    elif 'price' in sim.columns:
+        sim_price = sim[['timestamp', 'price']]
+    else:
+        return
 
     real = real_ohlcv[['timestamp', 'close']].copy()
 
@@ -178,9 +182,13 @@ def plot_price_timeseries_aligned(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFra
 		sim = _filter_rth(sim, 'timestamp')
 	if 'mid_price' in sim.columns:
 		sim_mid = sim[['timestamp', 'mid_price']].rename(columns={'mid_price': 'mid'})
-	else:
+	elif {'best_bid', 'best_ask'}.issubset(sim.columns):
 		sim['mid'] = (sim.get('best_bid') + sim.get('best_ask')) / 2.0
 		sim_mid = sim[['timestamp', 'mid']]
+	elif 'price' in sim.columns:
+		sim_mid = sim[['timestamp', 'price']].rename(columns={'price': 'mid'})
+	else:
+		return
 	sim_rs = _resample_mid(sim_mid, 'mid', 'timestamp', resample_rule)
 	# Prepare real series
 	real = real_ohlcv.copy()
@@ -463,10 +471,12 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
 	else:
 		sim_mid_series = pd.DataFrame(columns=['timestamp', 'mid'])
 	real_use = _filter_rth(real, 'timestamp') if (not real.empty and apply_rth) else real
-	# Plots still use fixed 1min overlays for readability; underlying metrics use cadence
-	plot_price_timeseries(frames['snapshots'], real_use, out, symbol)
+	# Choose input for plotting: snapshots if available, otherwise trades (price series)
+	sim_for_plots = frames['snapshots'] if not frames['snapshots'].empty else frames['trades']
+	# Plots
+	plot_price_timeseries(sim_for_plots, real_use, out, symbol)
 	# Also save an aligned cadence plot for visual correctness
-	plot_price_timeseries_aligned(frames['snapshots'], real, out, symbol, resample_rule, apply_rth)
+	plot_price_timeseries_aligned(sim_for_plots, real, out, symbol, resample_rule, apply_rth)
 	plot_return_distributions(frames['snapshots'], real_use, out, symbol)
 	plot_autocorrelations(frames['snapshots'], out, symbol)
 	# Only generate intraday U-shape plots when we actually have intraday data
