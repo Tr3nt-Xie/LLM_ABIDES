@@ -33,6 +33,13 @@ try:
 except Exception:
 	_fetch_price_at_timestamp = None
 
+# Optional exchange calendar (XNYS) for exact sessions
+try:
+	import exchange_calendars as _xcals
+	_XNYS = _xcals.get_calendar('XNYS')
+except Exception:
+	_XNYS = None
+
 # Load environment variables
 try:
     from dotenv import load_dotenv
@@ -507,8 +514,21 @@ class EnhancedOrderBookDB:
             self.market_data[symbol]["high_today"] = self.last_trade_prices[symbol]
             self.market_data[symbol]["low_today"] = self.last_trade_prices[symbol]
         
-        # Simulate each minute of the trading day
-        trading_minutes = (self.config.trading_hours_end - self.config.trading_hours_start) * 60
+        # Determine session open/close using XNYS if available
+        if _XNYS is not None:
+            ct_utc = pd.Timestamp(self.current_time).tz_localize('UTC') if pd.Timestamp(self.current_time).tz is None else pd.Timestamp(self.current_time).tz_convert('UTC')
+            # Derive NY local date and session label
+            ny_date = ct_utc.tz_convert('America/New_York').date()
+            session_label = pd.Timestamp(ny_date)
+            if not _XNYS.is_session(session_label):
+                session_label = _XNYS.next_session(session_label)
+            open_ts = _XNYS.session_open(session_label)  # UTC tz-aware
+            close_ts = _XNYS.session_close(session_label)  # UTC tz-aware
+            self.current_time = open_ts.to_pydatetime()
+            trading_minutes = int((close_ts - open_ts).total_seconds() // 60)
+        else:
+            # Fallback: fixed RTH minutes
+            trading_minutes = (self.config.trading_hours_end - self.config.trading_hours_start) * 60
         
         for minute in range(trading_minutes):
             minute_time = self.current_time + timedelta(minutes=minute)
@@ -521,8 +541,14 @@ class EnhancedOrderBookDB:
         # Save daily market stats
         self._save_daily_market_stats()
         
-        # Move to next day
-        self.current_time += timedelta(days=1)
+        # Move to next day/session
+        if _XNYS is not None:
+            # Advance to next session open
+            next_label = _XNYS.next_session(session_label)
+            next_open = _XNYS.session_open(next_label)
+            self.current_time = next_open.to_pydatetime()
+        else:
+            self.current_time += timedelta(days=1)
     
     def _simulate_minute(self, minute_time: datetime):
         """Simulate one minute of trading activity"""
