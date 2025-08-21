@@ -126,6 +126,8 @@ class EnhancedOrderBookConfig:
     trading_hours_start: int = 9
     trading_hours_end: int = 16
     symbols: List[str] = field(default_factory=lambda: ["AAPL", "GOOGL", "MSFT", "TSLA", "AMZN"])
+    # New: start date override in UTC (e.g., 2025-08-21T13:30:00Z)
+    simulation_start_utc: Optional[str] = None
     
     # Market microstructure parameters
     initial_prices: Dict[str, float] = field(default_factory=lambda: {
@@ -263,8 +265,9 @@ class EnhancedAgent:
         # Determine order type and price
         order_type, price = self._determine_order_type_and_price(side, current_price, market_data)
         
-        # Generate order ID
-        order_id = f"ORD_{self.agent_id}_{timestamp.strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"
+        # Generate order ID with uuid suffix to avoid collisions
+        u_sfx = uuid.uuid4().hex[:8]
+        order_id = f"ORD_{self.agent_id}_{timestamp.strftime('%Y%m%d_%H%M%S')}_{u_sfx}"
         
         return {
             "order_id": order_id,
@@ -355,7 +358,14 @@ class EnhancedOrderBookDB:
         self.config = config
         
         # Initialize runtime state first
-        self.current_time = datetime(2024, 1, 2, 9, 30)  # Start of trading day
+        # Use provided simulation start or default to today at 13:30 UTC (approx 9:30 ET during DST)
+        if self.config.simulation_start_utc:
+            try:
+                self.current_time = pd.to_datetime(self.config.simulation_start_utc, utc=True).to_pydatetime()
+            except Exception:
+                self.current_time = datetime.utcnow().replace(hour=13, minute=30, second=0, microsecond=0)
+        else:
+            self.current_time = datetime.utcnow().replace(hour=13, minute=30, second=0, microsecond=0)
         # Unique run identifier to ensure globally unique IDs across runs
         self.run_id = uuid.uuid4().hex[:8]
         self.order_books = {symbol: {"bids": {}, "asks": {}} for symbol in config.symbols}

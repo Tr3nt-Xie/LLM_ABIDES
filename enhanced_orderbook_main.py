@@ -409,6 +409,8 @@ Examples:
                        help="UTC end datetime for validation")
     parser.add_argument("--val-interval", type=str, default="1m",
                        help="Validation OHLCV interval (default: 1m)")
+    parser.add_argument("--start-utc", type=str, default=None,
+                       help="Simulation start datetime UTC (e.g., 2025-08-21T13:30:00Z)")
     
     args = parser.parse_args()
     
@@ -427,7 +429,8 @@ Examples:
             simulation_days=args.days,
             symbols=args.symbols,
             base_orders_per_minute=args.orders_per_minute,
-            use_in_memory=args.in_memory
+            use_in_memory=args.in_memory,
+            simulation_start_utc=args.start_utc
         )
         logger.info("Using custom configuration")
     else:
