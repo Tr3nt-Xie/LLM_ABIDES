@@ -1,16 +1,16 @@
 Dataset: orders
-Shape: (5065, 16)
+Shape: (5202, 16)
 Columns: ['id', 'order_id', 'timestamp', 'agent_id', 'agent_type', 'symbol', 'side', 'order_type', 'price', 'quantity', 'filled_quantity', 'remaining_quantity', 'status', 'time_in_force', 'avg_fill_price', 'market_price_at_time']
 
 Basic Statistics:
                 id  ... market_price_at_time
-count  5065.000000  ...          5065.000000
-mean   2533.000000  ...          1306.935273
-min       1.000000  ...           148.270000
-25%    1267.000000  ...           149.540000
-50%    2533.000000  ...           150.780000
-75%    3799.000000  ...          2463.920000
-max    5065.000000  ...          2512.640000
-std    1462.283887  ...          1162.344516
+count  5202.000000  ...          5202.000000
+mean   2601.500000  ...          1307.771071
+min       1.000000  ...           147.790000
+25%    1301.250000  ...           149.160000
+50%    2601.500000  ...          2417.840000
+75%    3901.750000  ...          2446.560000
+max    5202.000000  ...          2500.810000
+std    1501.832381  ...          1151.194582
 
 [8 rows x 8 columns]

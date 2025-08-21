@@ -53,7 +53,12 @@ class EnhancedOrderBookSystem:
         logger.info(f"Output directory: {self.output_dir.absolute()}")
     
     def run_comprehensive_simulation(self, config: EnhancedOrderBookConfig, 
-                                   analyze_with_llm: bool = True) -> dict:
+                                   analyze_with_llm: bool = True,
+                                   validate_with_real: bool = False,
+                                   validation_symbol: str = None,
+                                   validation_start: str = None,
+                                   validation_end: str = None,
+                                   validation_interval: str = "1m") -> dict:
         """Run complete simulation with generation, storage, and analysis"""
         
         logger.info("=" * 80)
@@ -111,6 +116,43 @@ class EnhancedOrderBookSystem:
                 logger.info("✅ LLM analysis completed")
             else:
                 logger.info("\n⚠️  Skipping LLM analysis (disabled)")
+
+            # Optional Phase: Real Market Validation
+            if validate_with_real and validation_symbol:
+                try:
+                    logger.info("\n🧪 PHASE 3b: REAL MARKET VALIDATION")
+                    logger.info("-" * 50)
+                    # derive time window if not provided (use last trading day in stats)
+                    if validation_start is None or validation_end is None:
+                        # use today's UTC window as fallback
+                        from datetime import datetime as _dt_datetime, timedelta as _dt_timedelta, timezone as _dt_timezone
+                        end_dt = _dt_datetime.now(tz=_dt_timezone.utc)
+                        start_dt = end_dt - _dt_timedelta(hours=6)
+                    else:
+                        start_dt = pd.to_datetime(validation_start, utc=True)
+                        end_dt = pd.to_datetime(validation_end, utc=True)
+
+                    analyzer = LLMOrderBookAnalyzer(use_real_llm=False)
+                    validation = analyzer.validate_against_real_market(
+                        data_dict, symbol=validation_symbol,
+                        start=start_dt, end=end_dt, interval=validation_interval
+                    )
+                    results["validation"] = validation
+                    # Save quick summary
+                    if validation and "summary" in validation:
+                        val_summary = validation["summary"]
+                        summary_txt = [
+                            f"Real market validation for {validation_symbol}",
+                            f"Mean abs error (bps): {val_summary.get('mean_abs_error_bps', 'NA')}",
+                            f"Median abs error (bps): {val_summary.get('median_abs_error_bps', 'NA')}",
+                            f"P95 abs error (bps): {val_summary.get('p95_abs_error_bps', 'NA')}",
+                            f"Bias (bps): {val_summary.get('bias_bps', 'NA')}"
+                        ]
+                        results["reports"]["real_validation"] = "\n".join(summary_txt)
+                        self._save_reports({"real_validation": results["reports"]["real_validation"]})
+                        logger.info("✅ Real market validation completed")
+                except Exception as e:
+                    logger.warning(f"⚠️ Real market validation failed: {e}")
             
             # Phase 4: Generate Final Summary
             logger.info("\n📋 PHASE 4: GENERATING FINAL SUMMARY")
@@ -357,6 +399,18 @@ Examples:
                        help="Skip LLM analysis")
     parser.add_argument("--in-memory", action="store_true",
                        help="Use in-memory database")
+    parser.add_argument("--validate-real", action="store_true",
+                       help="Fetch real market/news data and validate against simulation")
+    parser.add_argument("--val-symbol", type=str, default=None,
+                       help="Validation symbol (e.g., AAPL)")
+    parser.add_argument("--val-start", type=str, default=None,
+                       help="UTC start datetime for validation (e.g., 2024-01-02T13:30:00Z)")
+    parser.add_argument("--val-end", type=str, default=None,
+                       help="UTC end datetime for validation")
+    parser.add_argument("--val-interval", type=str, default="1m",
+                       help="Validation OHLCV interval (default: 1m)")
+    parser.add_argument("--start-utc", type=str, default=None,
+                       help="Simulation start datetime UTC (e.g., 2025-08-21T13:30:00Z)")
     
     args = parser.parse_args()
     
@@ -375,7 +429,8 @@ Examples:
             simulation_days=args.days,
             symbols=args.symbols,
             base_orders_per_minute=args.orders_per_minute,
-            use_in_memory=args.in_memory
+            use_in_memory=args.in_memory,
+            simulation_start_utc=args.start_utc
         )
         logger.info("Using custom configuration")
     else:
@@ -424,7 +479,12 @@ Examples:
     try:
         results = system.run_comprehensive_simulation(
             config=config,
-            analyze_with_llm=not args.no_llm
+            analyze_with_llm=not args.no_llm,
+            validate_with_real=args.validate_real,
+            validation_symbol=args.val_symbol,
+            validation_start=args.val_start,
+            validation_end=args.val_end,
+            validation_interval=args.val_interval
         )
         
         # Print final summary

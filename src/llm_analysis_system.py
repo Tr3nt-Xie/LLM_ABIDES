@@ -26,16 +26,18 @@ except ImportError:
 from dataclasses import dataclass
 import io
 import base64
+from real_data_ingestion import fetch_and_compare
 
-# OpenAI integration
+# OpenAI integration (v1 API)
 try:
-    import openai
+    from openai import OpenAI  # v1 client
     from dotenv import load_dotenv
     load_dotenv()
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-except ImportError:
-    print("Warning: OpenAI not available. Using mock analysis.")
-    openai = None
+    _OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    _GLOBAL_OPENAI_CLIENT = OpenAI(api_key=_OPENAI_API_KEY) if _OPENAI_API_KEY else None
+except Exception:
+    print("Warning: OpenAI not available or not configured. Using mock analysis.")
+    _GLOBAL_OPENAI_CLIENT = None
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -65,7 +67,8 @@ class LLMOrderBookAnalyzer:
     """LLM-powered analyzer for order book data quality and realism"""
     
     def __init__(self, use_real_llm: bool = True):
-        self.use_real_llm = use_real_llm and openai is not None and os.getenv("OPENAI_API_KEY")
+        self.client = _GLOBAL_OPENAI_CLIENT if use_real_llm else None
+        self.use_real_llm = self.client is not None
         self.analysis_cache = {}
         
         # Real market benchmarks (typical values for major stocks)
@@ -137,6 +140,20 @@ class LLMOrderBookAnalyzer:
         
         logger.info("✅ Order book analysis completed")
         return comparison
+
+    def validate_against_real_market(self, data_dict: Dict[str, pd.DataFrame], symbol: str,
+                                     start: datetime, end: datetime, interval: str = "1m") -> Dict[str, Any]:
+        """Fetch real OHLCV and compare simulated trades against it. Returns a validation package."""
+        trades_df = data_dict.get('trades', pd.DataFrame())
+        if trades_df.empty:
+            return {"error": "No simulated trades to compare"}
+        # Filter trades to symbol
+        sim_trades = trades_df[trades_df['symbol'] == symbol].copy()
+        if sim_trades.empty:
+            return {"error": f"No simulated trades for {symbol}"}
+        result, used_interval = fetch_and_compare(symbol=symbol, sim_trades=sim_trades, start=start, end=end, interval=interval, allow_fallback=True)
+        result["used_interval"] = used_interval
+        return result
     
     def _calculate_generated_stats(self, orders_df: pd.DataFrame, trades_df: pd.DataFrame, 
                                  snapshots_df: pd.DataFrame) -> Dict[str, Any]:
@@ -374,16 +391,15 @@ class LLMOrderBookAnalyzer:
             # Prepare data for LLM analysis
             analysis_prompt = self._create_analysis_prompt(generated_stats, similarity_scores, stylized_facts)
             
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert in financial market microstructure and order book analysis. Provide detailed, technical insights about order book simulation quality."},
                     {"role": "user", "content": analysis_prompt}
                 ],
-                max_tokens=1000,
+                max_tokens=700,
                 temperature=0.3
             )
-            
             llm_response = response.choices[0].message.content
             return self._parse_llm_response(llm_response)
             

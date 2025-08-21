@@ -11,6 +11,7 @@ import sqlite3
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import uuid
 from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass, field, asdict
 from collections import defaultdict, deque
@@ -25,6 +26,12 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
+
+# Optional real-world price seeding
+try:
+	from real_data_ingestion import fetch_price_at_timestamp as _fetch_price_at_timestamp
+except Exception:
+	_fetch_price_at_timestamp = None
 
 # Load environment variables
 try:
@@ -125,6 +132,8 @@ class EnhancedOrderBookConfig:
     trading_hours_start: int = 9
     trading_hours_end: int = 16
     symbols: List[str] = field(default_factory=lambda: ["AAPL", "GOOGL", "MSFT", "TSLA", "AMZN"])
+    # New: start date override in UTC (e.g., 2025-08-21T13:30:00Z)
+    simulation_start_utc: Optional[str] = None
     
     # Market microstructure parameters
     initial_prices: Dict[str, float] = field(default_factory=lambda: {
@@ -262,8 +271,9 @@ class EnhancedAgent:
         # Determine order type and price
         order_type, price = self._determine_order_type_and_price(side, current_price, market_data)
         
-        # Generate order ID
-        order_id = f"ORD_{self.agent_id}_{timestamp.strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"
+        # Generate order ID with uuid suffix to avoid collisions
+        u_sfx = uuid.uuid4().hex[:8]
+        order_id = f"ORD_{self.agent_id}_{timestamp.strftime('%Y%m%d_%H%M%S')}_{u_sfx}"
         
         return {
             "order_id": order_id,
@@ -354,7 +364,16 @@ class EnhancedOrderBookDB:
         self.config = config
         
         # Initialize runtime state first
-        self.current_time = datetime(2024, 1, 2, 9, 30)  # Start of trading day
+        # Use provided simulation start or default to today at 13:30 UTC (approx 9:30 ET during DST)
+        if self.config.simulation_start_utc:
+            try:
+                self.current_time = pd.to_datetime(self.config.simulation_start_utc, utc=True).to_pydatetime()
+            except Exception:
+                self.current_time = datetime.utcnow().replace(hour=13, minute=30, second=0, microsecond=0)
+        else:
+            self.current_time = datetime.utcnow().replace(hour=13, minute=30, second=0, microsecond=0)
+        # Unique run identifier to ensure globally unique IDs across runs
+        self.run_id = uuid.uuid4().hex[:8]
         self.order_books = {symbol: {"bids": {}, "asks": {}} for symbol in config.symbols}
         self.last_trade_prices = config.initial_prices.copy()
         self.market_data = {symbol: {"volatility": 0.02, "spread": price * 0.001, "fair_value": price, "price_change": 0.0} 
@@ -423,6 +442,14 @@ class EnhancedOrderBookDB:
         for symbol in self.config.symbols:
             # Initialize with some market depth
             price = self.config.initial_prices[symbol]
+            # Try to seed from real-world price at start time
+            if _fetch_price_at_timestamp is not None:
+                try:
+                    p, meta = _fetch_price_at_timestamp(symbol, self.current_time, interval="1m", allow_fallback=True)
+                    if p is not None:
+                        price = float(p)
+                except Exception:
+                    pass
             spread = price * 0.001
             
             self.market_data[symbol].update({
@@ -617,9 +644,12 @@ class EnhancedOrderBookDB:
         # Determine quantity (minimum of both orders)
         quantity = min(buy_order["remaining_quantity"], sell_order["remaining_quantity"])
         
-        # Generate unique trade ID
+        # Generate unique trade ID (prefix with run_id to avoid collisions across runs)
         self.trade_counter += 1
-        trade_id = f"TRD_{buy_order['timestamp'].strftime('%Y%m%d_%H%M%S')}_{self.trade_counter:06d}"
+        trade_id = (
+            f"TRD_{self.run_id}_{buy_order['timestamp'].strftime('%Y%m%d_%H%M%S')}_"
+            f"{self.trade_counter:06d}"
+        )
         
         # Update market data
         symbol = buy_order["symbol"]

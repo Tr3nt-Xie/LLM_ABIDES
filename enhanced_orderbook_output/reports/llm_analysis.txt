@@ -4,17 +4,17 @@
 🎯 EXECUTIVE SUMMARY
 ------------------------------
 Overall Realism Score: 3.8/10
-Confidence Level: 16.5%
+Confidence Level: 16.9%
 
 Simulation shows 3.8/10 realism based on similarity scores and stylized facts compliance.
 
 📈 SIMILARITY TO REAL MARKETS
 ------------------------------
 ❌ Spread Similarity: 0.0%
-❌ Order Size Similarity: 22.4%
+❌ Order Size Similarity: 22.8%
 ❌ Market Impact Similarity: 0.0%
-⚠️ Fill Rate Realism: 43.7%
-❌ Overall Similarity: 16.5%
+⚠️ Fill Rate Realism: 44.8%
+❌ Overall Similarity: 16.9%
 
 📐 STYLIZED FACTS COMPLIANCE
 ------------------------------
@@ -26,17 +26,17 @@ Simulation shows 3.8/10 realism based on similarity scores and stylized facts co
 
 📊 KEY STATISTICS
 ------------------------------
-Total Orders: 5,065
-Total Trades: 995
-Fill Rate: 19.6%
+Total Orders: 30,446
+Total Trades: 6,136
+Fill Rate: 20.2%
 Average Spread: 10.0 bps
-Average Market Impact: 7.34 bps
+Average Market Impact: 7.86 bps
 
 🔬 MICROSTRUCTURE ANALYSIS
 ------------------------------
 Order Flow Imbalance Ratio: 0.56
 Market Impact by Trade Size:
-  Small: 7.34 bps
+  Small: 7.86 bps
   Medium: nan bps
   Large: nan bps
 
@@ -55,4 +55,4 @@ Medium Orders: 25%
 Large Orders: 5%
 
 ============================================================
-Report generated on 2025-08-04 01:42:19
+Report generated on 2025-08-21 20:40:44
