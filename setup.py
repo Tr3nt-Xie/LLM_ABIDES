@@ -50,7 +50,7 @@ def main():
     
     # Test installation
     print("\n🧪 Testing Installation")
-    if run_command("python main.py --config", "Testing configuration"):
+    if run_command("python3 main.py --config", "Testing configuration"):
         print("\n🎉 Setup completed successfully!")
         print("\nNext steps:")
         print("• Configure .env with your OpenAI API key (optional)")

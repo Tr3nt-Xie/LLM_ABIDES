@@ -18,26 +18,16 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 import importlib
 
-# Prefer real ABIDES imports, fallback to mock core for development
+# Prefer real ABIDES imports, fallback to local mock core for development
 try:
     TradingAgent = importlib.import_module("abides_markets.agents.trading_agent").TradingAgent
     Message = importlib.import_module("abides_core.message.message").Message
     util = importlib.import_module("abides_core.utils.util")
 except Exception:
-    try:
-        TradingAgent = importlib.import_module("agent.TradingAgent").TradingAgent
-        Message = importlib.import_module("message.Message").Message
-        util = importlib.import_module("util.util")
-    except Exception:
-        from mock_abides_core import TradingAgent, Message, util
+    from mock_abides_core import TradingAgent, Message, util
 
-# LLM imports
-try:
-    import autogen
-    HAS_LLM = True
-except ImportError:
-    HAS_LLM = False
-    logging.getLogger(__name__).warning("autogen not found. LLM features disabled.")
+# LLM integration (provided via enhanced_llm_abides_system if available)
+HAS_LLM = False
 
 # Enhanced LLM system imports
 try:
@@ -45,6 +35,7 @@ try:
         NewsEvent, MarketSignal, NewsCategory, 
         EnhancedLLMNewsAnalyzer, RealisticNewsGenerator
     )
+    HAS_LLM = True
 except ImportError:
     # Minimal fallbacks for typing only
     from enum import Enum
@@ -72,6 +63,7 @@ except ImportError:
         duration: int
         confidence: float
         source_agent: str
+    HAS_LLM = False
 
 logger = logging.getLogger(__name__)
 

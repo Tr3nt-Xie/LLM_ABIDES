@@ -32,12 +32,8 @@ clean_project/
 │   ├── abides_llm_agents.py          # LLM-enhanced trading agents
 │   ├── abides_llm_config.py          # ABIDES configuration system
 │   ├── enhanced_llm_abides_system.py # Enhanced LLM integration
-│   ├── enhanced_orderbook_db.py      # Enhanced order book + DB
-│   ├── scaled_lob_generator.py       # Scaled LOB live book generator
 │   ├── validation_viz.py             # Realism plots + KS/EMD metrics
 │   └── real_data_ingestion.py        # yfinance OHLCV + news
-├── enhanced_orderbook_main.py
-├── scaled_lob_main.py
 └── examples/
 ```
 
@@ -51,20 +47,10 @@ pip install -r requirements.txt
 
 ## 🔄 End-to-End Workflow
 
-### 1) Run the Enhanced Order Book (multi-symbol)
+### 1) Run the Simple Demo (no ABIDES required)
 ```bash
-# Quick test (2 symbols), with LLM analysis and real-data validation enabled
-python enhanced_orderbook_main.py --config quick_test --validate-real --val-symbol AAPL
-
-# Custom multi-symbol run
-python enhanced_orderbook_main.py --custom \
-  --agents 1000 --days 1 --symbols AAPL GOOGL MSFT TSLA AMZN \
-  --db-path multi_symbols_orderbook.db
+python examples/simple_abides_llm_demo.py
 ```
-Outputs:
-- Database: `quick_test_orderbook.db` (or your custom path)
-- Reports: `enhanced_orderbook_output/reports/`
-- Data summaries: `enhanced_orderbook_output/data_summaries/`
 
 ### 2) Generate Realism Plots and Metrics (RTH, mid-to-mid)
 ```bash
@@ -78,14 +64,10 @@ This produces:
 - Spread distribution, order-sign ACF, market impact vs trade size
 - KS/EMD with 95% bootstrap CIs saved to `metrics_<SYMBOL>.txt`
 
-### 3) Scaled LOB Live-Book Generation (with market-maker quoting)
+### 3) ABIDES configuration (optional, when ABIDES is installed)
 ```bash
-python scaled_lob_main.py --scale small
-# or custom
-python scaled_lob_main.py --custom --scale-factor 100 --days 1 \
-  --symbols AAPL GOOGL MSFT --db-path scaled_lob.db
+python -c "import sys; sys.path.insert(0, 'src'); import abides_llm_config as c; c.build_config()"
 ```
-- Implements a live price–time priority book, inventory-based market-maker quoting, Hawkes-like sign memory, lognormal sizes, and cancellations.
 
 ### 4) Couple LLM News to the Market (optional)
 ```python
@@ -324,22 +306,10 @@ The framework can ingest real market data and recent news to validate simulation
 - 95th percentile absolute error (bps)
 - Price bias (bps)
 
-### How to run (Enhanced Order Book system)
+### How to run (validation plots)
 ```bash
-# Quick end-to-end run with real-data validation (default 6h UTC window)
-python enhanced_orderbook_main.py --config quick_test --no-llm \
-  --validate-real --val-symbol AAPL
-
-# With an explicit UTC time window (ISO-8601)
-python enhanced_orderbook_main.py --config quick_test --no-llm \
-  --validate-real --val-symbol AAPL \
-  --val-start 2024-01-02T13:30:00Z --val-end 2024-01-02T19:30:00Z \
-  --val-interval 1m
+python src/validation_viz.py --db quick_test_orderbook.db --symbol AAPL --outdir validation_plots_rth/AAPL
 ```
-
-Outputs:
-- Validation report saved to `enhanced_orderbook_output/reports/real_validation.txt`
-- Contains summary metrics (mean/median/p95 abs error in bps, bias) comparing simulated trade prices vs real bars
 
 ### Modules added
 - `src/real_data_ingestion.py`
@@ -348,8 +318,7 @@ Outputs:
   - `align_simulation_with_real_market(sim_trades, real_ohlcv)`: aligns timestamps, computes price error (bps)
   - `basic_validation_report(merged)`: summarizes error metrics
   - `fetch_and_compare(symbol, sim_trades, start, end, interval)`: convenience wrapper
-- `src/llm_analysis_system.py`
-  - `LLMOrderBookAnalyzer.validate_against_real_market(...)`: internal helper used by the enhanced pipeline
+  
 
 Notes:
 - Internet access is required for fetching real data
@@ -415,9 +384,7 @@ Trader Performance:
 - `yfinance>=0.2.40` - Real market data (OHLCV/news) ingestion
 
 ### Optional Dependencies
-- `plotly>=5.10.0` - Advanced visualization
-- `sqlalchemy>=1.4.0` - Database integration
-- `tiktoken>=0.5.0` - Token counting for LLM
+- None
 
 ## 🎨 Architecture
 
