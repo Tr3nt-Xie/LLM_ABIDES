@@ -13,4 +13,7 @@ openai>=1.0.0
 # Environment management
 python-dotenv>=0.20.0
 
+# Timezone utilities for validation
+pytz>=2021.1
+
 yfinance>=0.2.40
