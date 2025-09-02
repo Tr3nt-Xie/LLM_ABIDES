@@ -24,7 +24,14 @@ try:
     Message = importlib.import_module("abides_core.message.message").Message
     util = importlib.import_module("abides_core.utils.util")
 except Exception:
-    from mock_abides_core import TradingAgent, Message, util
+    try:
+        # Try namespaced import when running as module (src.*)
+        from src.mock_abides_core import TradingAgent, Message, util
+    except Exception:
+        # Fallback: adjust sys.path to include this file's directory
+        import os, sys
+        sys.path.insert(0, os.path.dirname(__file__))
+        from mock_abides_core import TradingAgent, Message, util
 
 # LLM integration (provided via enhanced_llm_abides_system if available)
 HAS_LLM = False
@@ -123,7 +130,15 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
         if not self.news_generator:
             return
         try:
-            news_event = self.news_generator.generate_realistic_event()
+            # Support multiple generator method names across implementations
+            if hasattr(self.news_generator, 'generate_news_event'):
+                news_event = self.news_generator.generate_news_event()
+            elif hasattr(self.news_generator, 'generate_event'):
+                news_event = self.news_generator.generate_event()
+            elif hasattr(self.news_generator, 'generate_realistic_event'):
+                news_event = self.news_generator.generate_realistic_event()
+            else:
+                raise AttributeError("News generator missing generate_* method")
             news_event.timestamp = currentTime
             util.log_print(f"{self.name} generated news: {news_event.headline}")
             self.processNewsEvent(currentTime, news_event)
@@ -149,12 +164,14 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
                     'impact_assessment': {
                         'immediate_impact': abs(sentiment) * 5,
                         'confidence': confidence,
+                        'black_swan_risk': raw.get('black_swan_risk', 0.0),
                     },
                     'price_predictions': {
                         'direction': 'up' if sentiment > 0 else 'down',
                         'magnitude_percent': abs(sentiment) * 2,
                     },
-                    'reasoning': raw.get('reasoning', 'LLM analysis')
+                    'reasoning': raw.get('reasoning', 'LLM analysis'),
+                    'black_swan_notes': raw.get('black_swan_notes', '')
                 }
             else:
                 analysis = self.createFallbackAnalysis(news_event)
@@ -823,13 +840,8 @@ def runABIDESWithLLMAgents(config_name="llm_enhanced_rmsc04", duration_hours=1):
     
     # LLM configuration
     llm_config = {
-        "config_list": [
-            {
-                "model": "gpt-4o",
-                "api_key": "your-api-key-here",  # Replace with actual key
-                "temperature": 0.3
-            }
-        ],
+        "model": "gpt-4o",
+        "temperature": 0.3,
         "timeout": 60
     }
     
