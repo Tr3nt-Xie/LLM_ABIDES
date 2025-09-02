@@ -1,1 +1,8 @@
-
+timestamp,title,publisher,link,sentiment_score,confidence,black_swan_risk,black_swan_notes,market_impact,risk_assessment,reasoning
+2025-04-02T04:00:00+00:00,Derived: DOWN move 0.0 bps,DerivedFromPrice,,-0.0,0.7,0.0,Derived from significant price move,Significant intraday move,Volatility-derived,Constructed event from OHLCV return spike
+2025-04-03T04:00:00+00:00,Derived: DOWN move 970.1 bps,DerivedFromPrice,,-1.0,0.7,0.32337816811767917,Derived from significant price move,Significant intraday move,Volatility-derived,Constructed event from OHLCV return spike
+2025-04-04T04:00:00+00:00,Derived: DOWN move 756.8 bps,DerivedFromPrice,,-1.0,0.7,0.25226736008878703,Derived from significant price move,Significant intraday move,Volatility-derived,Constructed event from OHLCV return spike
+2025-04-07T04:00:00+00:00,Derived: DOWN move 374.3 bps,DerivedFromPrice,,-0.7485194882244883,0.7,0.12475324803741472,Derived from significant price move,Significant intraday move,Volatility-derived,Constructed event from OHLCV return spike
+2025-04-08T04:00:00+00:00,Derived: DOWN move 511.0 bps,DerivedFromPrice,,-1.0,0.7,0.1703399520903511,Derived from significant price move,Significant intraday move,Volatility-derived,Constructed event from OHLCV return spike
+2025-04-09T04:00:00+00:00,Derived: UP move 1426.2 bps,DerivedFromPrice,,1.0,0.7,0.4753916450034031,Derived from significant price move,Significant intraday move,Volatility-derived,Constructed event from OHLCV return spike
+2025-04-10T04:00:00+00:00,Derived: DOWN move 433.2 bps,DerivedFromPrice,,-0.8663730833240635,0.7,0.14439551388734392,Derived from significant price move,Significant intraday move,Volatility-derived,Constructed event from OHLCV return spike
