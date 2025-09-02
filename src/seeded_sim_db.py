@@ -20,7 +20,7 @@ from typing import Tuple
 
 import pandas as pd
 
-from real_data_ingestion import fetch_price_at_timestamp
+from real_data_ingestion import fetch_price_at_timestamp, fetch_intraday_ohlcv, MarketFetchConfig
 
 
 def _round_down_to_minute(ts: datetime) -> datetime:
@@ -39,8 +39,42 @@ def _fetch_seed_price(symbol: str, start: datetime) -> Tuple[float, dict]:
     return float(price), meta
 
 
+def _calibrate_per_minute_vol(symbol: str, start: datetime, end: datetime) -> tuple[float, dict]:
+    cfg = MarketFetchConfig(symbol=symbol, start=start, end=end, interval="1m", allow_fallback=True)
+    real = fetch_intraday_ohlcv(cfg)
+    if real is None or real.empty or 'close' not in real.columns:
+        return 0.0, {"interval_used": None}
+    r = pd.Series(pd.to_numeric(real['close'], errors='coerce')).dropna()
+    if len(r) < 3:
+        return 0.0, {"interval_used": real.attrs.get('interval_used')}
+    ret = (r.astype(float).apply(lambda x: float(x))).pipe(lambda s: (s.astype(float).apply(lambda x: x))).pct_change()
+    # Use log returns if safer; but for small deltas, pct_change is fine
+    try:
+        lr = (r.astype(float)).apply(lambda x: float(x)).pipe(lambda s: (s.astype(float))).apply(lambda x: x)
+        import numpy as _np
+        ret = (pd.Series(_np.log(r)).diff())
+    except Exception:
+        pass
+    std = float(ret.dropna().std()) if len(ret.dropna()) else 0.0
+    # Intraday shape: hour-of-day volatility multipliers (normalized to mean 1)
+    real['timestamp'] = pd.to_datetime(real['timestamp'], utc=True, errors='coerce')
+    real_ret = pd.Series((pd.Series(pd.to_numeric(real['close'], errors='coerce')).dropna()).pipe(lambda s: pd.Series(_np.log(s)).diff())) if 'close' in real.columns else pd.Series(dtype=float)
+    try:
+        real['ret'] = pd.Series(_np.log(pd.to_numeric(real['close'], errors='coerce'))).diff()
+        real['hour'] = real['timestamp'].dt.hour
+        g = real.dropna(subset=['ret']).groupby('hour')['ret'].std()
+        if not g.empty and g.mean() and g.mean() > 0:
+            shape = (g / g.mean()).to_dict()
+        else:
+            shape = {}
+    except Exception:
+        shape = {}
+    return std, {"interval_used": real.attrs.get('interval_used'), "shape": shape}
+
+
 def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
-                daily_vol: float = 0.02, base_spread_bps: float = 8.0) -> None:
+                daily_vol: float = 0.02, base_spread_bps: float = 8.0,
+                calibrate_vol: bool = False, intraday_shape: bool = False) -> None:
     start = _round_down_to_minute(start.astimezone(timezone.utc))
     end = _round_down_to_minute(end.astimezone(timezone.utc))
     if end <= start:
@@ -54,16 +88,32 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
     cur.execute('CREATE TABLE IF NOT EXISTS orderbook_snapshots ('
                 'timestamp TEXT, symbol TEXT, best_bid REAL, best_ask REAL, mid_price REAL, spread REAL)')
 
-    # Simulate minute-by-minute mid prices using a simple GBM-like process with mild mean reversion
+    # Derive per-minute volatility from real series if requested
+    per_minute_std = None
+    vol_meta = {}
+    if calibrate_vol:
+        per_minute_std, vol_meta = _calibrate_per_minute_vol(symbol, start, end)
+
+    # Simulate minute-by-minute mid prices using a process with mild mean reversion
     mid = seed_price
-    dt_years = 1.0 / (252 * 24 * 60)  # per-minute step in years
+    # Use trading minutes per day if not calibrating
+    trading_minutes_per_day = 390.0
+    dt_years = 1.0 / (252 * trading_minutes_per_day)  # per-minute step in years over trading time
     minutes = int((end - start).total_seconds() // 60)
     for i in range(minutes + 1):
         ts = start + timedelta(minutes=i)
         # mean reversion toward seed_price helps stability over short windows
         mean_reversion_strength = 0.05
         mr = mean_reversion_strength * (seed_price - mid) / max(seed_price, 1e-6)
-        shock = random.gauss(0.0, daily_vol * math.sqrt(dt_years))
+        if per_minute_std and per_minute_std > 0:
+            # Optionally modulate by intraday shape
+            mult = 1.0
+            if intraday_shape and 'shape' in vol_meta and isinstance(vol_meta['shape'], dict):
+                mult = float(vol_meta['shape'].get(ts.hour, 1.0))
+            shock = random.gauss(0.0, per_minute_std * mult)
+        else:
+            # Fall back to daily_vol parameter mapped to per-minute using trading minutes
+            shock = random.gauss(0.0, daily_vol / math.sqrt(trading_minutes_per_day))
         mid = max(0.01, mid * (1.0 + mr * dt_years + shock))
         spread = max(0.01, mid * (base_spread_bps / 10000.0) * random.uniform(0.7, 1.3))
         bid = mid - spread / 2.0
@@ -78,6 +128,9 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
     print(f"Seed price: {seed_price}")
     print(f"Seed meta: {meta}")
     print(f"Start: {start.isoformat()}  End: {end.isoformat()}")
+    if calibrate_vol:
+        print(f"Per-minute std (real): {per_minute_std}")
+        print(f"Vol meta: {vol_meta}")
 
 
 def main() -> int:
@@ -87,8 +140,10 @@ def main() -> int:
     p.add_argument('--start', default=None, help='UTC ISO start (default: now-6h)')
     p.add_argument('--end', default=None, help='UTC ISO end (default: now)')
     p.add_argument('--hours', type=int, default=6, help='If start/end not provided, use now-hours..now')
-    p.add_argument('--daily-vol', type=float, default=0.02, help='Assumed daily volatility')
+    p.add_argument('--daily-vol', type=float, default=0.02, help='Assumed daily volatility (used if not calibrating)')
     p.add_argument('--spread-bps', type=float, default=8.0, help='Base spread in bps')
+    p.add_argument('--calibrate-vol', action='store_true', help='Calibrate per-minute volatility to real OHLCV')
+    p.add_argument('--intraday-shape', action='store_true', help='Apply intraday volatility U-shape based on real data')
     args = p.parse_args()
 
     now = datetime.now(timezone.utc)
@@ -99,7 +154,16 @@ def main() -> int:
         end = now
         start = now - timedelta(hours=args.hours)
 
-    generate_db(args.db, args.symbol, start, end, daily_vol=args.daily_vol, base_spread_bps=args.spread_bps)
+    generate_db(
+        args.db,
+        args.symbol,
+        start,
+        end,
+        daily_vol=args.daily_vol,
+        base_spread_bps=args.spread_bps,
+        calibrate_vol=args.calibrate_vol,
+        intraday_shape=args.intraday_shape,
+    )
     return 0
 
 
