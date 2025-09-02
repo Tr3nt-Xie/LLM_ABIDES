@@ -16,11 +16,29 @@ import math
 import random
 import sqlite3
 from datetime import datetime, timedelta, timezone
-from typing import Tuple
+from typing import Tuple, Optional, List, Dict
 
 import pandas as pd
 
 from real_data_ingestion import fetch_price_at_timestamp, fetch_intraday_ohlcv, MarketFetchConfig
+
+
+def _load_events_csv(path: Optional[str]) -> pd.DataFrame:
+    if not path:
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(path)
+        if 'timestamp' in df.columns:
+            df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
+        else:
+            df['timestamp'] = pd.NaT
+        # Coerce fields
+        for c in ('sentiment_score', 'confidence'):
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors='coerce')
+        return df.dropna(subset=['timestamp'])
+    except Exception:
+        return pd.DataFrame()
 
 
 def _round_down_to_minute(ts: datetime) -> datetime:
@@ -74,7 +92,9 @@ def _calibrate_per_minute_vol(symbol: str, start: datetime, end: datetime) -> tu
 
 def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
                 daily_vol: float = 0.02, base_spread_bps: float = 8.0,
-                calibrate_vol: bool = False, intraday_shape: bool = False) -> None:
+                calibrate_vol: bool = False, intraday_shape: bool = False,
+                events_csv: Optional[str] = None, impact_strength: float = 0.05,
+                impact_decay_minutes: int = 60) -> None:
     start = _round_down_to_minute(start.astimezone(timezone.utc))
     end = _round_down_to_minute(end.astimezone(timezone.utc))
     if end <= start:
@@ -93,6 +113,9 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
     vol_meta = {}
     if calibrate_vol:
         per_minute_std, vol_meta = _calibrate_per_minute_vol(symbol, start, end)
+
+    # Prepare news impact events (optional)
+    events_df = _load_events_csv(events_csv)
 
     # Simulate minute-by-minute mid prices using a process with mild mean reversion
     mid = seed_price
@@ -114,7 +137,21 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
         else:
             # Fall back to daily_vol parameter mapped to per-minute using trading minutes
             shock = random.gauss(0.0, daily_vol / math.sqrt(trading_minutes_per_day))
-        mid = max(0.01, mid * (1.0 + mr * dt_years + shock))
+        # News-driven drift (optional): sum decayed influences of events around current ts
+        drift = 0.0
+        if not events_df.empty:
+            window_start = ts - timedelta(minutes=impact_decay_minutes * 3)
+            sub = events_df[(events_df['timestamp'] <= ts) & (events_df['timestamp'] >= window_start)]
+            if not sub.empty:
+                # exponential decay by minutes since event
+                dtm = (ts - sub['timestamp']).dt.total_seconds() / 60.0
+                weight = (-(dtm / max(1.0, float(impact_decay_minutes)))).apply(lambda x: math.exp(x))
+                sent = pd.to_numeric(sub.get('sentiment_score', 0.0), errors='coerce').fillna(0.0)
+                conf = pd.to_numeric(sub.get('confidence', 0.5), errors='coerce').fillna(0.5)
+                influence = (sent * conf * weight).sum()
+                drift = impact_strength * float(influence)
+        # Apply combined update
+        mid = max(0.01, mid * (1.0 + mr * dt_years + drift + shock))
         spread = max(0.01, mid * (base_spread_bps / 10000.0) * random.uniform(0.7, 1.3))
         bid = mid - spread / 2.0
         ask = mid + spread / 2.0
@@ -144,6 +181,9 @@ def main() -> int:
     p.add_argument('--spread-bps', type=float, default=8.0, help='Base spread in bps')
     p.add_argument('--calibrate-vol', action='store_true', help='Calibrate per-minute volatility to real OHLCV')
     p.add_argument('--intraday-shape', action='store_true', help='Apply intraday volatility U-shape based on real data')
+    p.add_argument('--events-csv', default=None, help='Path to Yahoo/LLM events CSV to drive news impact')
+    p.add_argument('--impact-strength', type=float, default=0.05, help='Scale for news drift contribution')
+    p.add_argument('--impact-decay-minutes', type=int, default=60, help='Half-life scale for news impact decay')
     args = p.parse_args()
 
     now = datetime.now(timezone.utc)
@@ -163,6 +203,9 @@ def main() -> int:
         base_spread_bps=args.spread_bps,
         calibrate_vol=args.calibrate_vol,
         intraday_shape=args.intraday_shape,
+        events_csv=args.events_csv,
+        impact_strength=args.impact_strength,
+        impact_decay_minutes=args.impact_decay_minutes,
     )
     return 0
 
