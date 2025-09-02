@@ -1,7 +1,7 @@
 {
   "symbol": "AAPL",
   "num_events": 7,
-  "avg_sentiment": -0.5164129949971509,
-  "avg_confidence": 0.7000000000000001,
-  "avg_black_swan_risk": 0.21293211432874348
+  "avg_sentiment": 0.015905888467346956,
+  "avg_confidence": 0.5,
+  "avg_black_swan_risk": 0.03219291213803289
 }

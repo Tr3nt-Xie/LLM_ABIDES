@@ -243,6 +243,35 @@ def main() -> int:
     if len(events) == 0:
         # Fallback: derive events from price action within the window to avoid empty outputs
         events = _derive_events_from_price(symbol, start_dt, end_dt, max_events=max(10, args.max_news))
+        # If LLM is enabled, refine derived events via LLM analyzer to capture richer sentiment
+        if use_llm and HAS_ENHANCED and len(events) > 0:
+            try:
+                analyzer = EnhancedLLMNewsAnalyzer([symbol])
+                import asyncio
+                refined: List[Dict[str, Any]] = []
+                for e in events:
+                    ts = pd.to_datetime(e.get("timestamp"), utc=True)
+                    ne = NewsEvent(
+                        timestamp=ts.to_pydatetime() if pd.notna(ts) else datetime.now(timezone.utc),
+                        category=NewsCategory.COMPANY_SPECIFIC,
+                        headline=e.get("title") or f"Derived Event: {symbol}",
+                        content=e.get("reasoning") or "Derived from price action",
+                        affected_symbols=[symbol],
+                        sentiment_score=float(e.get("sentiment_score", 0.0)),
+                        importance=0.5,
+                    )
+                    raw = asyncio.run(analyzer.analyze_news(ne))
+                    e["sentiment_score"] = float(raw.get("sentiment_score", e["sentiment_score"]))
+                    e["confidence"] = float(raw.get("confidence", e.get("confidence", 0.6)))
+                    e["black_swan_risk"] = float(raw.get("black_swan_risk", e.get("black_swan_risk", 0.0)))
+                    e["black_swan_notes"] = raw.get("black_swan_notes", e.get("black_swan_notes", ""))
+                    e["market_impact"] = raw.get("market_impact", e.get("market_impact", ""))
+                    e["risk_assessment"] = raw.get("risk_assessment", e.get("risk_assessment", ""))
+                    e["reasoning"] = raw.get("reasoning", e.get("reasoning", ""))
+                    refined.append(e)
+                events = refined
+            except Exception:
+                pass
     outputs = _write_outputs(symbol, outdir, events)
 
     # Handle common case-variation typo: also mirror LLMon -> LLmon if present in path
