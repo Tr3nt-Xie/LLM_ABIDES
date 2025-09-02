@@ -211,6 +211,7 @@ def main() -> int:
     p.add_argument("--outdir", required=True)
     p.add_argument("--no-llm", action="store_true", help="Disable LLM; use baseline heuristics")
     p.add_argument("--max-news", type=int, default=50, help="Max news items to analyze")
+    p.add_argument("--allow-derived-events", action="store_true", help="If no Yahoo news, derive events from price moves (disabled by default)")
     args = p.parse_args()
 
     symbol = args.symbol.upper()
@@ -240,10 +241,9 @@ def main() -> int:
     # Determine whether to use LLM (even if enabled, code falls back to mock when key missing)
     use_llm = not args.no_llm
     events = _analyze_news_llm(symbol, news_df, use_llm=use_llm)
-    if len(events) == 0:
-        # Fallback: derive events from price action within the window to avoid empty outputs
+    if len(events) == 0 and args.allow_derived_events:
+        # Optional fallback: derive events from price action
         events = _derive_events_from_price(symbol, start_dt, end_dt, max_events=max(10, args.max_news))
-        # If LLM is enabled, refine derived events via LLM analyzer to capture richer sentiment
         if use_llm and HAS_ENHANCED and len(events) > 0:
             try:
                 analyzer = EnhancedLLMNewsAnalyzer([symbol])
