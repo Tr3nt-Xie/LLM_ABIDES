@@ -80,11 +80,22 @@ def _analyze_news_llm(symbol: str, news_rows: pd.DataFrame, use_llm: bool) -> Li
     if use_llm and HAS_ENHANCED:
         analyzer = EnhancedLLMNewsAnalyzer([symbol])
 
+    def _coerce_str(val: Any) -> str:
+        try:
+            import pandas as pd  # local import to avoid global dependency at top
+            if pd.isna(val):
+                return ""
+        except Exception:
+            pass
+        if isinstance(val, str):
+            return val.strip()
+        return (str(val).strip() if val is not None else "")
+
     for idx, row in news_rows.iterrows():
         ts = pd.to_datetime(row.get("timestamp"), utc=True)
-        title = (row.get("title") or "").strip()
-        publisher = (row.get("publisher") or "").strip()
-        link = (row.get("link") or "").strip()
+        title = _coerce_str(row.get("title"))
+        publisher = _coerce_str(row.get("publisher"))
+        link = _coerce_str(row.get("link"))
 
         if analyzer is None:
             analysis = _rule_based_analysis(title)
