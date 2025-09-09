@@ -160,20 +160,23 @@ class LLMInterface:
     
     async def generate_response(self, system_prompt: str, user_prompt: str, 
                                model: str = "gpt-4", max_tokens: int = 1000,
-                               temperature: float = 0.7) -> str:
+                               temperature: float = 0.7, timeout_seconds: int = 30) -> str:
         """Generate LLM response with fallback to mock"""
         if self.client:
             try:
-                response = self.client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    max_tokens=max_tokens,
-                    temperature=temperature
-                )
-                return response.choices[0].message.content
+                # Enforce client-side timeout via asyncio
+                async def _call():
+                    return self.client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        max_tokens=max_tokens,
+                        temperature=temperature
+                    )
+                resp = await asyncio.wait_for(asyncio.to_thread(_call), timeout=timeout_seconds)
+                return resp.choices[0].message.content
             except Exception as e:
                 logger.error(f"LLM API call failed: {e}")
                 return self._mock_response(user_prompt)
@@ -241,8 +244,23 @@ class EnhancedLLMNewsAnalyzer:
         Please provide a comprehensive analysis of this news event's potential market impact."""
         
         try:
-            response = await self.llm.generate_response(system_prompt, user_prompt)
-            analysis = json.loads(response)
+            response = await self.llm.generate_response(system_prompt, user_prompt, timeout_seconds=45)
+            # Strict JSON parse with schema checks
+            analysis_raw = json.loads(response)
+            analysis = {
+                'sentiment_score': float(analysis_raw.get('sentiment_score', 0.0)),
+                'confidence': float(analysis_raw.get('confidence', 0.5)),
+                'reasoning': str(analysis_raw.get('reasoning', '')),
+                'key_factors': list(analysis_raw.get('key_factors', [])) if isinstance(analysis_raw.get('key_factors', []), list) else [],
+                'market_impact': str(analysis_raw.get('market_impact', '')),
+                'risk_assessment': str(analysis_raw.get('risk_assessment', '')),
+                'black_swan_risk': float(analysis_raw.get('black_swan_risk', 0.0)),
+                'black_swan_notes': str(analysis_raw.get('black_swan_notes', '')),
+            }
+            # Clamp ranges
+            analysis['sentiment_score'] = max(-1.0, min(1.0, analysis['sentiment_score']))
+            analysis['confidence'] = max(0.0, min(1.0, analysis['confidence']))
+            analysis['black_swan_risk'] = max(0.0, min(1.0, analysis['black_swan_risk']))
             
             # Store analysis
             analysis_record = {
@@ -324,11 +342,24 @@ class AdvancedLLMTradingAgent:
         Based on your {self.strategy_type} strategy and the above information, what trading action do you recommend?"""
         
         try:
-            response = await self.llm.generate_response(system_prompt, user_prompt)
+            response = await self.llm.generate_response(system_prompt, user_prompt, timeout_seconds=45)
             
             # Try to parse JSON, with fallback handling
             try:
-                signal_data = json.loads(response)
+                raw = json.loads(response)
+                # Validate and coerce
+                signal_data = {
+                    'symbol': str(raw.get('symbol', self.symbols[0])),
+                    'strength': float(raw.get('strength', 0.5)),
+                    'confidence': float(raw.get('confidence', 0.5)),
+                    'reasoning': str(raw.get('reasoning', 'LLM-generated signal')),
+                    'risk_level': str(raw.get('risk_level', 'medium')),
+                    'stop_loss': raw.get('stop_loss'),
+                    'take_profit': raw.get('take_profit'),
+                }
+                # Clamp
+                signal_data['strength'] = max(0.0, min(1.0, signal_data['strength']))
+                signal_data['confidence'] = max(0.0, min(1.0, signal_data['confidence']))
             except json.JSONDecodeError:
                 # If response isn't valid JSON, try to extract structured data
                 logger.warning(f"LLM response not valid JSON, using fallback parsing: {response[:100]}...")
