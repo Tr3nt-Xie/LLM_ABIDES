@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Any
 import logging
+from pathlib import Path
+import csv
 
 # Load environment variables
 try:
@@ -105,6 +107,7 @@ class TradeOrder:
     quantity: int
     price: Optional[float] = None
     order_type: str = "MARKET"
+    executed_at: Optional[datetime] = None
 
 # =============================================================================
 # SIMPLIFIED LLM NEWS ANALYZER
@@ -304,7 +307,8 @@ class SimpleLLMTradingAgent(MockTradingAgent):
             side=signal.signal_type,
             quantity=quantity,
             price=current_price,
-            order_type="MARKET"
+            order_type="MARKET",
+            executed_at=datetime.now()
         )
         
         # Update holdings (simplified)
@@ -486,6 +490,11 @@ class ABIDESLLMSimulation:
         
         # Print simulation results
         self.print_results()
+        # Persist artifacts for review
+        try:
+            self.save_artifacts()
+        except Exception as e:
+            print(f"Warning: failed to save artifacts: {e}")
     
     def print_results(self):
         """Print simulation results"""
@@ -526,6 +535,83 @@ class ABIDESLLMSimulation:
             print(f"  Average confidence: {avg_confidence:.2f}")
         
         print("\n🎉 Simulation completed!")
+
+    def _compute_trader_summary(self) -> List[Dict[str, Any]]:
+        """Compute per-trader portfolio summaries for artifact export."""
+        summaries: List[Dict[str, Any]] = []
+        for trader in self.traders:
+            current_price = 100
+            stock_value = trader.holdings[trader.symbol] * current_price
+            portfolio_value = trader.holdings["CASH"] + stock_value
+            initial_value = 10_000_000 + (5000 * 100)
+            pnl = portfolio_value - initial_value
+            pnl_pct = (pnl / initial_value) * 100
+            summaries.append({
+                "name": trader.name,
+                "cash": trader.holdings["CASH"],
+                "shares": trader.holdings[trader.symbol],
+                "stock_value": stock_value,
+                "total_value": portfolio_value,
+                "pnl": pnl,
+                "pnl_pct": pnl_pct,
+                "signals": len(trader.signals_received),
+                "trades": len(trader.trades_executed),
+            })
+        return summaries
+
+    def save_artifacts(self, base_dir: Optional[Path] = None) -> Path:
+        """Save run artifacts (trader trades, news analysis, summary) to disk."""
+        project_root = Path(__file__).resolve().parent.parent
+        artifacts_root = base_dir or (project_root / "artifacts")
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        run_dir = artifacts_root / f"demo_run_{ts}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Summary JSON
+        summary = {
+            "events_processed": self.events_processed,
+            "total_signals": self.total_trades,
+            "llm_enabled": getattr(self.news_analyzer, "llm_enabled", False),
+            "traders": self._compute_trader_summary(),
+        }
+        (run_dir / "summary.json").write_text(json.dumps(summary, indent=2))
+
+        # News analysis JSON (lightweight representation)
+        na: List[Dict[str, Any]] = []
+        for rec in self.news_analyzer.analysis_history:
+            ne: NewsEvent = rec.get('news')
+            analysis: Dict[str, Any] = rec.get('analysis', {})
+            na.append({
+                "timestamp": rec.get('timestamp').isoformat() if isinstance(rec.get('timestamp'), datetime) else None,
+                "headline": getattr(ne, 'headline', None),
+                "category": getattr(ne, 'category', None).value if getattr(ne, 'category', None) else None,
+                "symbols": getattr(ne, 'affected_symbols', None),
+                "sentiment": analysis.get('sentiment'),
+                "impact_score": analysis.get('impact_score'),
+                "confidence": analysis.get('confidence'),
+            })
+        (run_dir / "news_analysis.json").write_text(json.dumps(na, indent=2))
+
+        # Per-trader trades CSV
+        for trader in self.traders:
+            rows = []
+            for t in trader.trades_executed:
+                rows.append({
+                    "timestamp": getattr(t, 'executed_at', None).isoformat() if getattr(t, 'executed_at', None) else None,
+                    "symbol": t.symbol,
+                    "side": t.side,
+                    "quantity": t.quantity,
+                    "price": t.price,
+                    "order_type": t.order_type,
+                })
+            csv_path = run_dir / f"trades_{trader.name}.csv"
+            with open(csv_path, "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=["timestamp", "symbol", "side", "quantity", "price", "order_type"])
+                writer.writeheader()
+                writer.writerows(rows)
+
+        print(f"\n💾 Artifacts saved to: {run_dir}")
+        return run_dir
 
 # =============================================================================
 # MAIN DEMO
