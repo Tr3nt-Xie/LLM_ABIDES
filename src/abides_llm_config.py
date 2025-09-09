@@ -124,24 +124,16 @@ def build_config(
     if log_dir is None:
         log_dir = "./abides_logs"
     
-    # Default LLM configuration
+    # Default LLM configuration (model/params only; API key via environment)
     if llm_enabled and llm_config is None:
         llm_config = {
-            "config_list": [
-                {
-                    "model": "gpt-4o-mini",  # More cost-effective default
-                    "api_key": os.getenv("OPENAI_API_KEY", "your-api-key-here"),
-                    "temperature": 0.3
-                }
-            ],
+            "model": "gpt-4o-mini",  # Cost-effective default
+            "temperature": 0.3,
             "timeout": 60
         }
-        
-        # Warn if no API key is set
-        if llm_config["config_list"][0]["api_key"] == "your-api-key-here":
-            print("Warning: No OpenAI API key found. Set OPENAI_API_KEY environment variable.")
-            print("LLM features will be disabled for this run.")
-            llm_enabled = False
+        # Informative notice if no API key present; enhanced system will fall back to mock
+        if not os.getenv("OPENAI_API_KEY"):
+            print("Warning: OPENAI_API_KEY not set. LLM calls will run in mock mode.")
     
     # Base configuration
     config = {

@@ -40,9 +40,13 @@ clean_project/
 ## 🛠️ Quick Setup
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-# Optional: export OPENAI_API_KEY for LLM analysis
+# If venv is not available, you can install directly with --break-system-packages on this environment
+pip install -r requirements.txt --break-system-packages
+
+# Configure your OpenAI key (optional; mock mode if absent)
+export OPENAI_API_KEY=sk-...
+# Or create a .env file:
+echo "OPENAI_API_KEY=sk-..." > .env
 ```
 
 ## 🔄 End-to-End Workflow

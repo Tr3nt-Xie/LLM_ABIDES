@@ -26,6 +26,12 @@ from pathlib import Path
 
 # Replace autogen with direct OpenAI API integration
 try:
+    # Load .env if available for local development
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except Exception:
+        pass
     import openai
     from openai import OpenAI
     LLM_AVAILABLE = True
@@ -220,7 +226,9 @@ class EnhancedLLMNewsAnalyzer:
         - reasoning: string explaining your analysis
         - key_factors: list of key factors that influenced your analysis
         - market_impact: string describing expected market impact
-        - risk_assessment: string describing potential risks"""
+        - risk_assessment: string describing potential risks
+        - black_swan_risk: float between 0 and 1 estimating probability of rare extreme event
+        - black_swan_notes: string with reasoning for that risk"""
         
         user_prompt = f"""Analyze this news event:
         
@@ -255,7 +263,9 @@ class EnhancedLLMNewsAnalyzer:
                 'reasoning': 'Fallback analysis due to LLM error',
                 'key_factors': ['uncertainty'],
                 'market_impact': 'Uncertain impact',
-                'risk_assessment': 'High uncertainty due to analysis failure'
+                'risk_assessment': 'High uncertainty due to analysis failure',
+                'black_swan_risk': random.uniform(0.0, 0.1),
+                'black_swan_notes': 'No strong indicators of tail-risk events in fallback'
             }
 
 
