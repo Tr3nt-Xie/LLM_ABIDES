@@ -165,7 +165,7 @@ class LLMInterface:
         if self.client:
             try:
                 # Enforce client-side timeout via asyncio
-                async def _call():
+                def _call():
                     return self.client.chat.completions.create(
                         model=model,
                         messages=[
