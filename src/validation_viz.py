@@ -440,14 +440,16 @@ def _interval_to_rule(interval_used: str) -> Tuple[str, bool]:
 	return ('1min', True)
 
 
-def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, outdir: str) -> Dict[str, Any]:
+def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, outdir: str, include_prepost: bool = False) -> Dict[str, Any]:
 	out = Path(outdir)
 	_ensure_outdir(out)
 	frames = load_simulated_frames(db_path, symbol)
-	cfg = MarketFetchConfig(symbol=symbol, start=start, end=end, interval='1m')
+	cfg = MarketFetchConfig(symbol=symbol, start=start, end=end, interval='1m', prepost=include_prepost)
 	real = fetch_intraday_ohlcv(cfg)
 	interval_used = real.attrs.get('interval_used', '1m') if isinstance(real, pd.DataFrame) else '1m'
 	resample_rule, apply_rth = _interval_to_rule(interval_used)
+	if include_prepost:
+		apply_rth = False
 	# Align to RTH and cadence
 	snap = frames['snapshots']
 	if not snap.empty:
@@ -500,6 +502,7 @@ def main():
     p.add_argument('--outdir', default='validation_plots', help='Directory to save plots')
     p.add_argument('--val-start', default=None, help='UTC ISO start (default: infer from DB)')
     p.add_argument('--val-end', default=None, help='UTC ISO end (default: infer from DB)')
+    p.add_argument('--include-prepost', action='store_true', help='Include pre/post-market (disable RTH filter)')
     args = p.parse_args()
 
     if args.val_start and args.val_end:
@@ -524,7 +527,7 @@ def main():
                 end = now
                 start = end - timedelta(hours=6)
 
-    generate_plots(args.db, args.symbol, start, end, args.outdir)
+    generate_plots(args.db, args.symbol, start, end, args.outdir, include_prepost=args.include_prepost)
     print(f"✅ Plots saved to: {args.outdir}")
 
 
