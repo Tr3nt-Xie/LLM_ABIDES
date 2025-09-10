@@ -39,6 +39,35 @@ def _load_events_csv(path: Optional[str]) -> pd.DataFrame:
         return df.dropna(subset=['timestamp'])
     except Exception:
         return pd.DataFrame()
+def _thin_events(events: pd.DataFrame, max_events: int, min_gap_minutes: int) -> pd.DataFrame:
+    """Select up to max_events with minimum time gap, prioritizing by |sentiment*confidence|."""
+    if events is None or events.empty:
+        return events
+    ev = events.copy()
+    ev['timestamp'] = pd.to_datetime(ev['timestamp'], utc=True, errors='coerce')
+    ev = ev.dropna(subset=['timestamp'])
+    # Score by absolute sentiment*confidence if available
+    try:
+        sent = pd.to_numeric(ev.get('sentiment_score', 0.0), errors='coerce').fillna(0.0)
+        conf = pd.to_numeric(ev.get('confidence', 0.5), errors='coerce').fillna(0.5)
+        ev['_score'] = (sent.abs() * conf).astype(float)
+    except Exception:
+        ev['_score'] = 0.0
+    ev = ev.sort_values(['_score', 'timestamp'], ascending=[False, True])
+    selected = []
+    last_ts = None
+    gap = pd.Timedelta(minutes=max(0, int(min_gap_minutes)))
+    for _, row in ev.iterrows():
+        ts = row['timestamp']
+        if last_ts is None or (ts - last_ts) >= gap:
+            selected.append(row)
+            last_ts = ts
+        if len(selected) >= max(1, int(max_events)):
+            break
+    if not selected:
+        return events
+    out = pd.DataFrame(selected).drop(columns=['_score'], errors='ignore').sort_values('timestamp')
+    return out
 
 
 def _round_down_to_minute(ts: datetime) -> datetime:
@@ -100,7 +129,10 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
                 black_swan_bps: float = 500.0,  # magnitude in bps (e.g., 500 = 5%)
                 black_swan_decay_minutes: int = 120,
                 black_swan_vol_mult: float = 3.0,
-                black_swan_spread_mult: float = 2.0) -> None:
+                black_swan_spread_mult: float = 2.0,
+                max_events: int = 20,
+                min_event_gap_minutes: int = 10,
+                drift_cap_per_minute: float = 0.0015) -> None:
     start = _round_down_to_minute(start.astimezone(timezone.utc))
     end = _round_down_to_minute(end.astimezone(timezone.utc))
     if end <= start:
@@ -122,9 +154,12 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
 
     # Prepare news impact events (optional)
     events_df = _load_events_csv(events_csv)
+    if not events_df.empty:
+        events_df = _thin_events(events_df, max_events=max_events, min_gap_minutes=min_event_gap_minutes)
 
     # Simulate minute-by-minute mid prices using a process with mild mean reversion
     mid = seed_price
+    log_mid = math.log(max(mid, 1e-6))
     # Use trading minutes per day if not calibrating
     trading_minutes_per_day = 390.0
     dt_years = 1.0 / (252 * trading_minutes_per_day)  # per-minute step in years over trading time
@@ -172,11 +207,20 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
                 sent = pd.to_numeric(sub.get('sentiment_score', 0.0), errors='coerce').fillna(0.0)
                 conf = pd.to_numeric(sub.get('confidence', 0.5), errors='coerce').fillna(0.5)
                 influence = (sent * conf * weight).sum()
-                drift = impact_strength * float(influence)
+                drift_raw = impact_strength * float(influence)
+                # Cap per-minute drift to avoid unrealistic jumps
+                if drift_raw > drift_cap_per_minute:
+                    drift = drift_cap_per_minute
+                elif drift_raw < -drift_cap_per_minute:
+                    drift = -drift_cap_per_minute
+                else:
+                    drift = drift_raw
         # Add black swan drift component
         drift += bs_drift
-        # Apply combined update
-        mid = max(0.01, mid * (1.0 + mr * dt_years + drift + shock))
+        # Apply combined update in log space for stability
+        mr_log = mr  # small mean-reversion term already scaled
+        log_mid = log_mid + mr_log + drift + shock
+        mid = max(0.01, math.exp(log_mid))
         spread = max(0.01, mid * (base_spread_bps / 10000.0) * bs_spread_boost * random.uniform(0.7, 1.3))
         bid = mid - spread / 2.0
         ask = mid + spread / 2.0
