@@ -91,10 +91,10 @@ def _calibrate_per_minute_vol(symbol: str, start: datetime, end: datetime) -> tu
 
 
 def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
-                daily_vol: float = 0.02, base_spread_bps: float = 8.0,
+                daily_vol: float = 0.01, base_spread_bps: float = 6.0,
                 calibrate_vol: bool = False, intraday_shape: bool = False,
-                events_csv: Optional[str] = None, impact_strength: float = 0.05,
-                impact_decay_minutes: int = 60,
+                events_csv: Optional[str] = None, impact_strength: float = 0.02,
+                impact_decay_minutes: int = 45,
                 black_swan_at: Optional[datetime] = None,
                 black_swan_direction: Optional[str] = None,  # 'up' or 'down'
                 black_swan_bps: float = 500.0,  # magnitude in bps (e.g., 500 = 5%)

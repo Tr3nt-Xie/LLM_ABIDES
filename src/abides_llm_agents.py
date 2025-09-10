@@ -278,10 +278,10 @@ class ABIDESLLMTradingAgent(TradingAgent):
     def _initializeStrategyParams(self):
         """Initialize strategy-specific parameters"""
         base_params = {
-            'max_position_pct': 0.10,  # 10% of portfolio
-            'min_confidence': 0.6,
-            'signal_decay_minutes': 30,
-            'rebalance_threshold': 0.05
+            'max_position_pct': 0.05,  # reduce to 5% of portfolio
+            'min_confidence': 0.7,     # require higher confidence
+            'signal_decay_minutes': 15, # faster decay to reduce persistence
+            'rebalance_threshold': 0.08 # reduce churn
         }
         
         # Strategy-specific adjustments
@@ -442,8 +442,8 @@ class ABIDESLLMTradingAgent(TradingAgent):
             portfolio_value = self.calculatePortfolioValue()
             max_position_value = portfolio_value * self.strategy_params['max_position_pct']
             
-            # Adjust by signal strength and confidence
-            position_value = max_position_value * signal['strength'] * signal['confidence']
+            # Adjust by signal strength and confidence (temper intensity)
+            position_value = max_position_value * (signal['strength'] ** 0.8) * (signal['confidence'] ** 0.8)
             
             # Convert to shares (assuming we have current price)
             current_price = self.getLastTradePrice()
@@ -461,7 +461,7 @@ class ABIDESLLMTradingAgent(TradingAgent):
                 order_quantity = -order_quantity
             
             # Check if order is significant enough
-            if abs(order_quantity) < 10:  # Minimum order size
+            if abs(order_quantity) < 25:  # Raise minimum size to avoid jitter
                 return
             
             # Place order

@@ -162,6 +162,12 @@ def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out:
     ax.plot(real['timestamp'], real['close'], label=f'Real {symbol} (close)', alpha=0.7)
     ax.set_title(f"Price Timeseries: {symbol} (Sim vs Real)")
     ax.set_xlabel('Time (UTC)')
+    try:
+        import matplotlib.dates as mdates
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=6, maxticks=12))
+    except Exception:
+        pass
     ax.set_ylabel('Price')
     ax.legend()
     fig.tight_layout()
