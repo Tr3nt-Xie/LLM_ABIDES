@@ -63,6 +63,41 @@ def _resample_mid(df: pd.DataFrame, price_col: str, ts_col: str = 'timestamp', r
     return out
 
 
+def _format_time_axis(ax) -> None:
+    try:
+        import matplotlib.dates as mdates
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=6, maxticks=12))
+    except Exception:
+        pass
+
+
+def _plot_event_markers(ax, events_csv: Optional[str], max_labels: int = 5) -> None:
+    if not events_csv:
+        return
+    try:
+        ev = pd.read_csv(events_csv)
+        if 'timestamp' not in ev.columns:
+            return
+        ev['timestamp'] = pd.to_datetime(ev['timestamp'], utc=True, errors='coerce')
+        ev = ev.dropna(subset=['timestamp']).sort_values('timestamp')
+        # Draw vertical lines
+        for _, row in ev.iterrows():
+            ts = row['timestamp']
+            ax.axvline(ts, color='tab:red', alpha=0.25, linestyle='--', linewidth=1.0)
+        # Annotate a few events for readability
+        titles = (ev['title'] if 'title' in ev.columns else pd.Series([''] * len(ev))).fillna('')
+        ylim_top = ax.get_ylim()[1]
+        for i, (ts, title) in enumerate(zip(ev['timestamp'].tolist()[:max_labels], titles.tolist()[:max_labels])):
+            label = (title[:60] + '…') if isinstance(title, str) and len(title) > 60 else (title or 'event')
+            ax.annotate(label, xy=(ts, ylim_top), xycoords=('data', 'data'),
+                        xytext=(5, -15 - i * 12), textcoords='offset points',
+                        fontsize=8, color='tab:red', alpha=0.85,
+                        arrowprops=dict(arrowstyle='-|>', lw=0.5, color='tab:red', alpha=0.5))
+    except Exception:
+        return
+
+
 def _ks_emd_bootstrap(sim_series: pd.Series, real_series: pd.Series, n_boot: int = 200, seed: int = 42) -> Dict[str, Any]:
     rng = np.random.default_rng(seed)
     # KS statistic
@@ -162,16 +197,88 @@ def plot_price_timeseries(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out:
     ax.plot(real['timestamp'], real['close'], label=f'Real {symbol} (close)', alpha=0.7)
     ax.set_title(f"Price Timeseries: {symbol} (Sim vs Real)")
     ax.set_xlabel('Time (UTC)')
-    try:
-        import matplotlib.dates as mdates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-        ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=6, maxticks=12))
-    except Exception:
-        pass
+    _format_time_axis(ax)
     ax.set_ylabel('Price')
     ax.legend()
     fig.tight_layout()
     fig.savefig(out / f"price_timeseries_{symbol}.png", dpi=120)
+    plt.close(fig)
+
+
+def plot_price_timeseries_with_events(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str, events_csv: Optional[str]) -> None:
+    if sim_snap.empty or real_ohlcv.empty:
+        return
+    sim = sim_snap.copy()
+    sim['timestamp'] = pd.to_datetime(sim['timestamp'], utc=True, errors='coerce')
+    sim = sim.dropna(subset=['timestamp'])
+    if 'mid_price' in sim.columns:
+        sim_price = sim[['timestamp', 'mid_price']].rename(columns={'mid_price': 'price'})
+    else:
+        sim['price'] = (sim.get('best_bid') + sim.get('best_ask')) / 2.0
+        sim_price = sim[['timestamp', 'price']]
+    real = real_ohlcv[['timestamp', 'close']].copy()
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(sim_price['timestamp'], sim_price['price'], label=f'Sim {symbol} (mid)', alpha=0.7)
+    ax.plot(real['timestamp'], real['close'], label=f'Real {symbol} (close)', alpha=0.7)
+    _plot_event_markers(ax, events_csv)
+    ax.set_title(f"Price Timeseries with Events: {symbol}")
+    ax.set_xlabel('Time (UTC)')
+    _format_time_axis(ax)
+    ax.set_ylabel('Price')
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out / f"price_timeseries_events_{symbol}.png", dpi=120)
+    plt.close(fig)
+
+
+def plot_composite(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, trades: pd.DataFrame, out: Path, symbol: str, events_csv: Optional[str]) -> None:
+    if sim_snap.empty or real_ohlcv.empty:
+        return
+    sim = sim_snap.copy(); sim['timestamp'] = pd.to_datetime(sim['timestamp'], utc=True, errors='coerce'); sim = sim.dropna(subset=['timestamp'])
+    real = real_ohlcv.copy(); real['timestamp'] = pd.to_datetime(real['timestamp'], utc=True, errors='coerce'); real = real.dropna(subset=['timestamp'])
+    # Mid series
+    if 'mid_price' in sim.columns:
+        sim_mid = sim[['timestamp','mid_price']].rename(columns={'mid_price':'mid'})
+    else:
+        sim['mid'] = (sim.get('best_bid') + sim.get('best_ask')) / 2.0
+        sim_mid = sim[['timestamp','mid']]
+    real_mid = real[['timestamp','close']].rename(columns={'close':'mid'})
+    # Align start and compute cumulative returns
+    start_ts = max(sim_mid['timestamp'].min(), real_mid['timestamp'].min())
+    sim_al = sim_mid[sim_mid['timestamp']>=start_ts].copy(); real_al = real_mid[real_mid['timestamp']>=start_ts].copy()
+    if sim_al.empty or real_al.empty:
+        return
+    sim_al['cum'] = sim_al['mid'] / sim_al['mid'].iloc[0] * 100.0
+    real_al['cum'] = real_al['mid'] / real_al['mid'].iloc[0] * 100.0
+    # Real volume (if available)
+    vol = real[['timestamp','volume']].dropna() if 'volume' in real.columns else pd.DataFrame(columns=['timestamp','volume'])
+    # Plot
+    import matplotlib.dates as mdates
+    fig, axs = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
+    # Top: price with events
+    axs[0].plot(sim_mid['timestamp'], sim_mid['mid'], label='Sim mid', alpha=0.8)
+    axs[0].plot(real_mid['timestamp'], real_mid['mid'], label='Real close', alpha=0.8)
+    _plot_event_markers(axs[0], events_csv)
+    axs[0].set_title(f"{symbol} After-hours: Price with Events")
+    axs[0].set_ylabel('Price')
+    axs[0].legend()
+    # Middle: cumulative returns
+    axs[1].plot(sim_al['timestamp'], sim_al['cum'], label='Sim cum %', alpha=0.9)
+    axs[1].plot(real_al['timestamp'], real_al['cum'], label='Real cum %', alpha=0.9)
+    axs[1].set_title('Cumulative Return (start=100)')
+    axs[1].set_ylabel('Index')
+    axs[1].legend()
+    # Bottom: real volume if available
+    if not vol.empty:
+        axs[2].bar(vol['timestamp'], vol['volume'], width=0.0005, color='tab:gray', alpha=0.6)
+        axs[2].set_ylabel('Real Volume')
+    else:
+        axs[2].text(0.5, 0.5, 'No real volume data', transform=axs[2].transAxes, ha='center', va='center', alpha=0.6)
+    axs[2].set_xlabel('Time (UTC)')
+    for ax in axs:
+        _format_time_axis(ax)
+    fig.tight_layout()
+    fig.savefig(out / f"composite_{symbol}.png", dpi=120)
     plt.close(fig)
 
 
@@ -446,7 +553,7 @@ def _interval_to_rule(interval_used: str) -> Tuple[str, bool]:
 	return ('1min', True)
 
 
-def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, outdir: str, include_prepost: bool = False) -> Dict[str, Any]:
+def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, outdir: str, include_prepost: bool = False, events_csv: Optional[str] = None) -> Dict[str, Any]:
 	out = Path(outdir)
 	_ensure_outdir(out)
 	frames = load_simulated_frames(db_path, symbol)
@@ -465,7 +572,11 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
 		sim_mid_series = pd.DataFrame(columns=['timestamp', 'mid'])
 	real_use = _filter_rth(real, 'timestamp') if (not real.empty and apply_rth) else real
 	# Plots still use fixed 1min overlays for readability; underlying metrics use cadence
-	plot_price_timeseries(frames['snapshots'], real_use, out, symbol)
+	if events_csv:
+		plot_price_timeseries_with_events(frames['snapshots'], real_use, out, symbol, events_csv)
+		plot_composite(frames['snapshots'], real_use, frames['trades'], out, symbol, events_csv)
+	else:
+		plot_price_timeseries(frames['snapshots'], real_use, out, symbol)
 	# Also save an aligned cadence plot for visual correctness
 	plot_price_timeseries_aligned(frames['snapshots'], real, out, symbol, resample_rule, apply_rth)
 	plot_return_distributions(frames['snapshots'], real_use, out, symbol)
@@ -509,6 +620,7 @@ def main():
     p.add_argument('--val-start', default=None, help='UTC ISO start (default: infer from DB)')
     p.add_argument('--val-end', default=None, help='UTC ISO end (default: infer from DB)')
     p.add_argument('--include-prepost', action='store_true', help='Include pre/post-market (disable RTH filter)')
+    p.add_argument('--events-csv', default=None, help='Path to events CSV to overlay on plots')
     args = p.parse_args()
 
     if args.val_start and args.val_end:
@@ -533,7 +645,7 @@ def main():
                 end = now
                 start = end - timedelta(hours=6)
 
-    generate_plots(args.db, args.symbol, start, end, args.outdir, include_prepost=args.include_prepost)
+    generate_plots(args.db, args.symbol, start, end, args.outdir, include_prepost=args.include_prepost, events_csv=args.events_csv)
     print(f"✅ Plots saved to: {args.outdir}")
 
 
