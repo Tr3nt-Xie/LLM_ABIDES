@@ -160,6 +160,23 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     return pd.read_sql(q, conn, params=(name,)).shape[0] > 0
 
 
+def _sim_series_from_trades(trades: pd.DataFrame, rule: str = '1min') -> pd.DataFrame:
+    """Derive simulated price series from trades using last trade per interval.
+
+    Returns DataFrame with columns: timestamp, mid_price (mapped from trade price).
+    """
+    if trades is None or trades.empty or 'price' not in trades.columns:
+        return pd.DataFrame(columns=['timestamp', 'mid_price'])
+    tr = trades.copy()
+    tr['timestamp'] = pd.to_datetime(tr['timestamp'], utc=True, errors='coerce')
+    tr = tr.dropna(subset=['timestamp'])
+    if tr.empty:
+        return pd.DataFrame(columns=['timestamp', 'mid_price'])
+    rs = tr.set_index('timestamp')['price'].resample(rule).last().dropna().to_frame('mid_price')
+    rs = rs.reset_index()
+    return rs
+
+
 def _infer_time_window_from_db(db_path: str, symbol: str) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
 	"""Infer min/max timestamps for a symbol from snapshots or trades in the DB."""
 	try:
@@ -565,27 +582,38 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
 		apply_rth = False
 	# Align to RTH and cadence
 	snap = frames['snapshots']
-	if not snap.empty:
+	real_use = _filter_rth(real, 'timestamp') if (not real.empty and apply_rth) else real
+
+	# Prefer trade-based simulated price series for plotting/metrics
+	sim_for_plot = snap
+	if 'timestamp' in frames['trades'].columns if not frames['trades'].empty else False:
+		trade_series = _sim_series_from_trades(frames['trades'], rule=resample_rule)
+		if not trade_series.empty:
+			sim_for_plot = trade_series.rename(columns={'mid_price': 'mid_price'})
+
+	# Build sim_mid_series for metrics (use sim_for_plot when available)
+	if not sim_for_plot.empty and 'mid_price' in sim_for_plot.columns:
+		sim_mid_series = _resample_mid(sim_for_plot.rename(columns={'mid_price': 'mid'}), 'mid', 'timestamp', resample_rule)
+	elif not snap.empty:
 		snap_use = _filter_rth(snap, 'timestamp') if apply_rth else snap
 		sim_mid_series = _resample_mid(snap_use.rename(columns={'mid_price': 'mid'}), 'mid', 'timestamp', resample_rule)
 	else:
 		sim_mid_series = pd.DataFrame(columns=['timestamp', 'mid'])
-	real_use = _filter_rth(real, 'timestamp') if (not real.empty and apply_rth) else real
-	# Plots still use fixed 1min overlays for readability; underlying metrics use cadence
+
+	# Plots
 	if events_csv:
-		plot_price_timeseries_with_events(frames['snapshots'], real_use, out, symbol, events_csv)
-		plot_composite(frames['snapshots'], real_use, frames['trades'], out, symbol, events_csv)
+		plot_price_timeseries_with_events(sim_for_plot, real_use, out, symbol, events_csv)
+		plot_composite(sim_for_plot, real_use, frames['trades'], out, symbol, events_csv)
 	else:
-		plot_price_timeseries(frames['snapshots'], real_use, out, symbol)
-	# Also save an aligned cadence plot for visual correctness
-	plot_price_timeseries_aligned(frames['snapshots'], real, out, symbol, resample_rule, apply_rth)
-	plot_return_distributions(frames['snapshots'], real_use, out, symbol)
-	plot_autocorrelations(frames['snapshots'], out, symbol)
+		plot_price_timeseries(sim_for_plot, real_use, out, symbol)
+	plot_price_timeseries_aligned(sim_for_plot, real, out, symbol, resample_rule, apply_rth)
+	plot_return_distributions(sim_for_plot, real_use, out, symbol)
+	plot_autocorrelations(sim_for_plot, out, symbol)
 	plot_intraday_volume(frames['trades'], real_use, out, symbol)
-	plot_spread_distribution(frames['snapshots'], out, symbol)
+	plot_spread_distribution(snap, out, symbol)
 	plot_order_sign_acf(frames['trades'], out, symbol)
 	plot_market_impact_curve(frames['trades'], out, symbol)
-	plot_intraday_volatility(frames['snapshots'], real_use, out, symbol)
+	plot_intraday_volatility(sim_for_plot, real_use, out, symbol)
 	# Metrics at cadence
 	metrics = {}
 	try:
