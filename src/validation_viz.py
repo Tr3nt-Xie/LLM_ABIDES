@@ -176,6 +176,22 @@ def _sim_series_from_trades(trades: pd.DataFrame, rule: str = '1min') -> pd.Data
     rs = rs.reset_index()
     return rs
 
+def _sim_series_from_trades(trades: pd.DataFrame, rule: str = '1min') -> pd.DataFrame:
+    """Derive simulated price series from trades using last trade per interval.
+
+    Returns DataFrame with columns: timestamp, mid_price (mapped from trade price).
+    """
+    if trades is None or trades.empty or 'price' not in trades.columns:
+        return pd.DataFrame(columns=['timestamp', 'mid_price'])
+    tr = trades.copy()
+    tr['timestamp'] = pd.to_datetime(tr['timestamp'], utc=True, errors='coerce')
+    tr = tr.dropna(subset=['timestamp'])
+    if tr.empty:
+        return pd.DataFrame(columns=['timestamp', 'mid_price'])
+    rs = tr.set_index('timestamp')['price'].resample(rule).last().dropna().to_frame('mid_price')
+    rs = rs.reset_index()
+    return rs
+
 
 def _infer_time_window_from_db(db_path: str, symbol: str) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
 	"""Infer min/max timestamps for a symbol from snapshots or trades in the DB."""
@@ -298,6 +314,60 @@ def plot_composite(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, trades: pd.
     fig.savefig(out / f"composite_{symbol}.png", dpi=120)
     plt.close(fig)
 
+
+def plot_price_with_executions(sim_trades: pd.DataFrame, sim_series: pd.DataFrame, real_ohlcv: pd.DataFrame,
+                               out: Path, symbol: str, events_csv: Optional[str],
+                               x_start: Optional[datetime], x_end: Optional[datetime]) -> None:
+    """Overlay simulated executions (execution time vs execution price) on price curves.
+
+    - sim_trades: expected columns include timestamp, price, and side/aggressor_side
+    - sim_series: DataFrame with timestamp and mid_price (derived from trades if available)
+    - real_ohlcv: timestamp and close
+    """
+    if real_ohlcv is None or real_ohlcv.empty:
+        return
+    # Prepare series
+    sim_s = sim_series.copy()
+    if 'timestamp' not in sim_s.columns or 'mid_price' not in sim_s.columns:
+        return
+    sim_s['timestamp'] = pd.to_datetime(sim_s['timestamp'], utc=True, errors='coerce')
+    sim_s = sim_s.dropna(subset=['timestamp'])
+    real = real_ohlcv[['timestamp', 'close']].copy()
+    real['timestamp'] = pd.to_datetime(real['timestamp'], utc=True, errors='coerce')
+    real = real.dropna(subset=['timestamp'])
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(sim_s['timestamp'], sim_s['mid_price'], label='Sim (trade-derived)', alpha=0.8)
+    ax.plot(real['timestamp'], real['close'], label='Real (close)', alpha=0.8)
+    _plot_event_markers(ax, events_csv)
+
+    # Overlay executions
+    if sim_trades is not None and not sim_trades.empty and 'price' in sim_trades.columns:
+        st = sim_trades.copy()
+        st['timestamp'] = pd.to_datetime(st['timestamp'], utc=True, errors='coerce')
+        st = st.dropna(subset=['timestamp'])
+        # Determine side mapping
+        if 'aggressor_side' in st.columns:
+            side = st['aggressor_side']
+        elif 'side' in st.columns:
+            side = st['side']
+        else:
+            side = pd.Series(['UNK'] * len(st))
+        colors = side.map({'BUY': 'tab:green', 'SELL': 'tab:red'}).fillna('tab:blue')
+        sizes = st.get('quantity', pd.Series([100] * len(st))).astype(float).pow(0.5)
+        sizes = (sizes / (sizes.max() if sizes.max() else 1.0) * 50.0) + 10.0
+        ax.scatter(st['timestamp'], st['price'], c=colors, s=sizes, alpha=0.6, edgecolors='none', label='Sim executions')
+
+    ax.set_title(f"{symbol} Price with Sim Executions and Events")
+    ax.set_xlabel('Time (UTC)')
+    _format_time_axis(ax)
+    if x_start is not None and x_end is not None:
+        ax.set_xlim([pd.to_datetime(x_start), pd.to_datetime(x_end)])
+    ax.set_ylabel('Price')
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out / f"price_with_executions_{symbol}.png", dpi=120)
+    plt.close(fig)
 
 def plot_price_timeseries_aligned(sim_snap: pd.DataFrame, real_ohlcv: pd.DataFrame, out: Path, symbol: str, resample_rule: str, apply_rth: bool) -> None:
 	"""Plot sim vs real price aligned to the same cadence and RTH handling."""
@@ -604,6 +674,7 @@ def generate_plots(db_path: str, symbol: str, start: datetime, end: datetime, ou
 	if events_csv:
 		plot_price_timeseries_with_events(sim_for_plot, real_use, out, symbol, events_csv)
 		plot_composite(sim_for_plot, real_use, frames['trades'], out, symbol, events_csv)
+		plot_price_with_executions(frames['trades'], sim_for_plot, real_use, out, symbol, events_csv, start, end)
 	else:
 		plot_price_timeseries(sim_for_plot, real_use, out, symbol)
 	plot_price_timeseries_aligned(sim_for_plot, real, out, symbol, resample_rule, apply_rth)
