@@ -161,6 +161,17 @@ python main.py --config
 python main.py
 ```
 
+### Non-Interactive Scaling
+```bash
+# Medium preset without prompts
+python main.py --scale-data --scale-preset medium --yes
+
+# Custom parameters without prompts
+python main.py --scale-data --scale-preset custom \
+  --scale-factor 200 --num-symbols 8 --days 3 \
+  --orders-per-minute 120 --batch-size 4000 --yes
+```
+
 ## 🎯 Usage Examples
 
 ### Basic Demo
@@ -188,6 +199,12 @@ python main.py
 ```bash
 python examples/simple_abides_llm_demo.py
 ```
+
+### Demo Artifacts
+Running the simple demo saves artifacts under `artifacts/demo_run_<timestamp>`:
+- summary.json
+- news_analysis.json
+- trades_<Trader>.csv
 
 ## 🧪 Available Experiments
 

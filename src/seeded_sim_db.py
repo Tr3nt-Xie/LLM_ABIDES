@@ -39,6 +39,35 @@ def _load_events_csv(path: Optional[str]) -> pd.DataFrame:
         return df.dropna(subset=['timestamp'])
     except Exception:
         return pd.DataFrame()
+def _thin_events(events: pd.DataFrame, max_events: int, min_gap_minutes: int) -> pd.DataFrame:
+    """Select up to max_events with minimum time gap, prioritizing by |sentiment*confidence|."""
+    if events is None or events.empty:
+        return events
+    ev = events.copy()
+    ev['timestamp'] = pd.to_datetime(ev['timestamp'], utc=True, errors='coerce')
+    ev = ev.dropna(subset=['timestamp'])
+    # Score by absolute sentiment*confidence if available
+    try:
+        sent = pd.to_numeric(ev.get('sentiment_score', 0.0), errors='coerce').fillna(0.0)
+        conf = pd.to_numeric(ev.get('confidence', 0.5), errors='coerce').fillna(0.5)
+        ev['_score'] = (sent.abs() * conf).astype(float)
+    except Exception:
+        ev['_score'] = 0.0
+    ev = ev.sort_values(['_score', 'timestamp'], ascending=[False, True])
+    selected = []
+    last_ts = None
+    gap = pd.Timedelta(minutes=max(0, int(min_gap_minutes)))
+    for _, row in ev.iterrows():
+        ts = row['timestamp']
+        if last_ts is None or (ts - last_ts) >= gap:
+            selected.append(row)
+            last_ts = ts
+        if len(selected) >= max(1, int(max_events)):
+            break
+    if not selected:
+        return events
+    out = pd.DataFrame(selected).drop(columns=['_score'], errors='ignore').sort_values('timestamp')
+    return out
 
 
 def _round_down_to_minute(ts: datetime) -> datetime:
@@ -91,10 +120,19 @@ def _calibrate_per_minute_vol(symbol: str, start: datetime, end: datetime) -> tu
 
 
 def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
-                daily_vol: float = 0.02, base_spread_bps: float = 8.0,
+                daily_vol: float = 0.01, base_spread_bps: float = 6.0,
                 calibrate_vol: bool = False, intraday_shape: bool = False,
-                events_csv: Optional[str] = None, impact_strength: float = 0.05,
-                impact_decay_minutes: int = 60) -> None:
+                events_csv: Optional[str] = None, impact_strength: float = 0.02,
+                impact_decay_minutes: int = 45,
+                black_swan_at: Optional[datetime] = None,
+                black_swan_direction: Optional[str] = None,  # 'up' or 'down'
+                black_swan_bps: float = 500.0,  # magnitude in bps (e.g., 500 = 5%)
+                black_swan_decay_minutes: int = 120,
+                black_swan_vol_mult: float = 3.0,
+                black_swan_spread_mult: float = 2.0,
+                max_events: int = 20,
+                min_event_gap_minutes: int = 10,
+                drift_cap_per_minute: float = 0.0015) -> None:
     start = _round_down_to_minute(start.astimezone(timezone.utc))
     end = _round_down_to_minute(end.astimezone(timezone.utc))
     if end <= start:
@@ -116,9 +154,12 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
 
     # Prepare news impact events (optional)
     events_df = _load_events_csv(events_csv)
+    if not events_df.empty:
+        events_df = _thin_events(events_df, max_events=max_events, min_gap_minutes=min_event_gap_minutes)
 
     # Simulate minute-by-minute mid prices using a process with mild mean reversion
     mid = seed_price
+    log_mid = math.log(max(mid, 1e-6))
     # Use trading minutes per day if not calibrating
     trading_minutes_per_day = 390.0
     dt_years = 1.0 / (252 * trading_minutes_per_day)  # per-minute step in years over trading time
@@ -128,15 +169,32 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
         # mean reversion toward seed_price helps stability over short windows
         mean_reversion_strength = 0.05
         mr = mean_reversion_strength * (seed_price - mid) / max(seed_price, 1e-6)
+        # Black swan volatility multiplier (decays over time from the shock)
+        bs_vol_boost = 1.0
+        bs_spread_boost = 1.0
+        bs_drift = 0.0
+        if black_swan_at is not None and isinstance(black_swan_at, datetime):
+            dtm_bs = abs((ts - black_swan_at).total_seconds()) / 60.0
+            decay_w = math.exp(- dtm_bs / max(1.0, float(black_swan_decay_minutes)))
+            # Drift component: signed immediate impact that decays
+            if black_swan_direction in ("up", "down"):
+                sign = 1.0 if black_swan_direction == "up" else -1.0
+                bs_drift = sign * (float(black_swan_bps) / 10000.0) * decay_w
+            # Volatility and spread multipliers
+            if black_swan_vol_mult and black_swan_vol_mult > 1.0:
+                bs_vol_boost = 1.0 + (float(black_swan_vol_mult) - 1.0) * decay_w
+            if black_swan_spread_mult and black_swan_spread_mult > 1.0:
+                bs_spread_boost = 1.0 + (float(black_swan_spread_mult) - 1.0) * decay_w
+
         if per_minute_std and per_minute_std > 0:
             # Optionally modulate by intraday shape
             mult = 1.0
             if intraday_shape and 'shape' in vol_meta and isinstance(vol_meta['shape'], dict):
                 mult = float(vol_meta['shape'].get(ts.hour, 1.0))
-            shock = random.gauss(0.0, per_minute_std * mult)
+            shock = random.gauss(0.0, per_minute_std * mult * bs_vol_boost)
         else:
             # Fall back to daily_vol parameter mapped to per-minute using trading minutes
-            shock = random.gauss(0.0, daily_vol / math.sqrt(trading_minutes_per_day))
+            shock = random.gauss(0.0, (daily_vol / math.sqrt(trading_minutes_per_day)) * bs_vol_boost)
         # News-driven drift (optional): sum decayed influences of events around current ts
         drift = 0.0
         if not events_df.empty:
@@ -149,10 +207,21 @@ def generate_db(db_path: str, symbol: str, start: datetime, end: datetime,
                 sent = pd.to_numeric(sub.get('sentiment_score', 0.0), errors='coerce').fillna(0.0)
                 conf = pd.to_numeric(sub.get('confidence', 0.5), errors='coerce').fillna(0.5)
                 influence = (sent * conf * weight).sum()
-                drift = impact_strength * float(influence)
-        # Apply combined update
-        mid = max(0.01, mid * (1.0 + mr * dt_years + drift + shock))
-        spread = max(0.01, mid * (base_spread_bps / 10000.0) * random.uniform(0.7, 1.3))
+                drift_raw = impact_strength * float(influence)
+                # Cap per-minute drift to avoid unrealistic jumps
+                if drift_raw > drift_cap_per_minute:
+                    drift = drift_cap_per_minute
+                elif drift_raw < -drift_cap_per_minute:
+                    drift = -drift_cap_per_minute
+                else:
+                    drift = drift_raw
+        # Add black swan drift component
+        drift += bs_drift
+        # Apply combined update in log space for stability
+        mr_log = mr  # small mean-reversion term already scaled
+        log_mid = log_mid + mr_log + drift + shock
+        mid = max(0.01, math.exp(log_mid))
+        spread = max(0.01, mid * (base_spread_bps / 10000.0) * bs_spread_boost * random.uniform(0.7, 1.3))
         bid = mid - spread / 2.0
         ask = mid + spread / 2.0
         cur.execute('INSERT INTO orderbook_snapshots VALUES (?,?,?,?,?,?)',
@@ -184,6 +253,13 @@ def main() -> int:
     p.add_argument('--events-csv', default=None, help='Path to Yahoo/LLM events CSV to drive news impact')
     p.add_argument('--impact-strength', type=float, default=0.05, help='Scale for news drift contribution')
     p.add_argument('--impact-decay-minutes', type=int, default=60, help='Half-life scale for news impact decay')
+    # Black swan configuration
+    p.add_argument('--black-swan-at', default=None, help='UTC ISO timestamp for shock center (e.g., 2025-09-09T15:00:00Z)')
+    p.add_argument('--black-swan-direction', choices=['up','down'], default=None, help='Shock direction')
+    p.add_argument('--black-swan-bps', type=float, default=500.0, help='Shock magnitude in basis points (e.g., 500 = 5% move)')
+    p.add_argument('--black-swan-decay-minutes', type=int, default=120, help='Shock decay half-life in minutes')
+    p.add_argument('--black-swan-vol-mult', type=float, default=3.0, help='Volatility multiplier at t=shock (decays)')
+    p.add_argument('--black-swan-spread-mult', type=float, default=2.0, help='Spread multiplier at t=shock (decays)')
     args = p.parse_args()
 
     now = datetime.now(timezone.utc)
@@ -193,6 +269,9 @@ def main() -> int:
     else:
         end = now
         start = now - timedelta(hours=args.hours)
+
+    # Parse black swan time
+    bs_at = pd.to_datetime(args.black_swan_at, utc=True).to_pydatetime() if args.black_swan_at else None
 
     generate_db(
         args.db,
@@ -206,6 +285,12 @@ def main() -> int:
         events_csv=args.events_csv,
         impact_strength=args.impact_strength,
         impact_decay_minutes=args.impact_decay_minutes,
+        black_swan_at=bs_at,
+        black_swan_direction=args.black_swan_direction,
+        black_swan_bps=args.black_swan_bps,
+        black_swan_decay_minutes=args.black_swan_decay_minutes,
+        black_swan_vol_mult=args.black_swan_vol_mult,
+        black_swan_spread_mult=args.black_swan_spread_mult,
     )
     return 0
 

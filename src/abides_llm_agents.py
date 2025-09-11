@@ -78,6 +78,9 @@ logger = logging.getLogger(__name__)
 class ABIDESLLMNewsAnalyzer(TradingAgent):
     """
     ABIDES-compatible LLM News Analyzer Agent
+    Note: When official ABIDES is not installed, this class runs in demo mode.
+    Methods that require kernel scheduling, message bus, or real exchange will
+    be no-ops. Look for "util.log_print" messages to understand mock behavior.
     """
     
     def __init__(self, id, name, type="ABIDESLLMNewsAnalyzer", symbols=None,
@@ -217,10 +220,14 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
         }
     
     def updateMarketContext(self, market_data):
-        pass
+        # Stub for ABIDES integration; no-op in demo mode
+        if not hasattr(self, 'market_context'):
+            self.market_context = {}
+        self.market_context.update(market_data or {})
     
     def schedulePeriodicNews(self):
-        pass
+        # Stub for ABIDES kernel scheduling; no-op in demo mode
+        util.log_print(f"{self.name} schedulePeriodicNews (demo mode)")
     
     def processPendingNews(self, currentTime):
         if self.pending_news:
@@ -271,10 +278,10 @@ class ABIDESLLMTradingAgent(TradingAgent):
     def _initializeStrategyParams(self):
         """Initialize strategy-specific parameters"""
         base_params = {
-            'max_position_pct': 0.10,  # 10% of portfolio
-            'min_confidence': 0.6,
-            'signal_decay_minutes': 30,
-            'rebalance_threshold': 0.05
+            'max_position_pct': 0.05,  # reduce to 5% of portfolio
+            'min_confidence': 0.7,     # require higher confidence
+            'signal_decay_minutes': 15, # faster decay to reduce persistence
+            'rebalance_threshold': 0.08 # reduce churn
         }
         
         # Strategy-specific adjustments
@@ -435,8 +442,8 @@ class ABIDESLLMTradingAgent(TradingAgent):
             portfolio_value = self.calculatePortfolioValue()
             max_position_value = portfolio_value * self.strategy_params['max_position_pct']
             
-            # Adjust by signal strength and confidence
-            position_value = max_position_value * signal['strength'] * signal['confidence']
+            # Adjust by signal strength and confidence (temper intensity)
+            position_value = max_position_value * (signal['strength'] ** 0.8) * (signal['confidence'] ** 0.8)
             
             # Convert to shares (assuming we have current price)
             current_price = self.getLastTradePrice()
@@ -454,7 +461,7 @@ class ABIDESLLMTradingAgent(TradingAgent):
                 order_quantity = -order_quantity
             
             # Check if order is significant enough
-            if abs(order_quantity) < 10:  # Minimum order size
+            if abs(order_quantity) < 25:  # Raise minimum size to avoid jitter
                 return
             
             # Place order
@@ -584,17 +591,17 @@ class ABIDESLLMTradingAgent(TradingAgent):
     def subscribeToMarketData(self):
         """Subscribe to market data updates"""
         # In real ABIDES, would subscribe to exchange market data
-        pass
+        util.log_print(f"{self.name} subscribeToMarketData (demo mode)")
     
     def scheduleNextTrading(self, currentTime):
         """Schedule next trading activity"""
         # In real ABIDES, would use kernel.setWakeup()
-        pass
+        util.log_print(f"{self.name} scheduleNextTrading (demo mode)")
     
     def manageActiveOrders(self, currentTime):
         """Manage active orders (timeouts, modifications)"""
         # Check for order timeouts and manage order lifecycle
-        pass
+        util.log_print(f"{self.name} manageActiveOrders (demo mode)")
 
 
 class ABIDESLLMMarketMaker(ABIDESLLMTradingAgent):
