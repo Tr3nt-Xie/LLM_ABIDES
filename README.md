@@ -84,6 +84,27 @@ summary = engine.generate_scaled_data()
 ```
 Then generate plots with step (2).
 
+### 5) ITCH comparison (per-second execution alignment)
+
+```bash
+# Compare simulated executions with NASDAQ ITCH trade prices aggregated per second
+python src/itch_compare.py \
+  --db quick_test_orderbook.db \
+  --symbol AAPL \
+  --itch /path/to/itch_trades_AAPL.csv \
+  --outdir itch_compare_out/AAPL \
+  --agg last   # options: last, vwap, median
+```
+
+Outputs in `--outdir`:
+- `itch_compare_<SYMBOL>.csv`: per-execution alignment with ITCH per-second price and error in bps
+- `metrics_<SYMBOL>.json`: summary metrics (mean/median abs error bps, p95, bias, coverage)
+- `itch_vs_sim_<SYMBOL>.png`: ITCH per-second series overlaid with sim executions
+
+Notes:
+- ITCH loader expects a CSV with columns including `timestamp`, `symbol`, `price` (and optional `size`). Timestamps are converted to UTC; naive timestamps are localized to `America/New_York` by default.
+- For raw binary ITCH, convert to CSV first or implement the stub in `src/itch_ingestion.py`.
+
 ## ✅ What’s Calibrated and Why It Matters
 
 - **Order sizes**: Lognormal per agent type → realistic heavy tails
