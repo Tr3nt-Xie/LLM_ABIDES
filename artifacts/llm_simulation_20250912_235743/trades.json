@@ -1,0 +1,26 @@
+[
+  {
+    "timestamp": "2025-09-12T23:57:43.146662",
+    "symbol": "TSLA",
+    "action": "buy",
+    "quantity": 689,
+    "price": 81.27509764791733,
+    "total": 55998.54227941504
+  },
+  {
+    "timestamp": "2025-09-12T23:57:43.146704",
+    "symbol": "AAPL",
+    "action": "buy",
+    "quantity": 477,
+    "price": 110.6176031386341,
+    "total": 52764.596697128465
+  },
+  {
+    "timestamp": "2025-09-12T23:57:43.146726",
+    "symbol": "AMZN",
+    "action": "buy",
+    "quantity": 410,
+    "price": 121.45816902534847,
+    "total": 49797.849300392874
+  }
+]
