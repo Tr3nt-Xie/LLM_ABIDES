@@ -77,12 +77,12 @@ class FinalLOBGenerator:
         self.mean_reversion_strength = 0.1  # Moderate mean reversion
         self.max_price_change_per_second = 0.0005  # 0.05% per second max
         
-        # News impact parameters - calibrated for ~3% total move
-        self.news_decay_rate = 0.001  # Moderate decay
+        # News impact parameters - calibrated for ~3% total move for LLMON
+        self.news_decay_rate = 0.0008  # Slower decay for sustained impact
         self.news_impact_multiplier = {
-            "LLMON": 1.0,    # Smart agents react appropriately
-            "LLMOFF": 0.7,   # Traditional agents less sophisticated
-            "Baseline": 0.5  # Baseline has dampened response
+            "LLMON": 1.8,    # Smart agents react to news (~3% impact)
+            "LLMOFF": 0.15,  # Traditional agents minimal reaction
+            "Baseline": 0.05 # Baseline almost no news reaction
         }
         
         # Microstructure
@@ -281,9 +281,9 @@ class FinalLOBGenerator:
             
             # Price components
             random_walk = np.random.normal(0, self.base_volatility)
-            news_component = news_impact * 0.0008  # News drives price change
-            agent_component = agent_pressure * 0.0004  # Agent reactions
-            mean_reversion = -(prices[i-1] - fundamental_price) / fundamental_price * self.mean_reversion_strength * 0.0008
+            news_component = news_impact * 0.0006  # Moderate news impact
+            agent_component = agent_pressure * 0.0003  # Agent reactions
+            mean_reversion = -(prices[i-1] - fundamental_price) / fundamental_price * self.mean_reversion_strength * 0.001
             
             # Total return
             total_return = random_walk + news_component + agent_component + mean_reversion
