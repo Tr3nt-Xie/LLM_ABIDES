@@ -1,0 +1,35 @@
+[
+  {
+    "timestamp": "2025-09-12T23:40:48.139772",
+    "headline": "Revenue mixed 25% year-over-year",
+    "category": "earnings",
+    "symbols": [
+      "ABM"
+    ],
+    "sentiment": 0.2727037944564945,
+    "impact_score": 1,
+    "confidence": 0.7756934574890877
+  },
+  {
+    "timestamp": "2025-09-12T23:40:48.640016",
+    "headline": "Company launches innovative new product line",
+    "category": "product_launch",
+    "symbols": [
+      "ABM"
+    ],
+    "sentiment": -0.26029481884962813,
+    "impact_score": 0.4320397656028412,
+    "confidence": 0.7316722548310775
+  },
+  {
+    "timestamp": "2025-09-12T23:40:49.140208",
+    "headline": "QQ2 results strong analyst expectations",
+    "category": "earnings",
+    "symbols": [
+      "ABM"
+    ],
+    "sentiment": 0.7673159802093146,
+    "impact_score": 1,
+    "confidence": 0.8087232170771599
+  }
+]

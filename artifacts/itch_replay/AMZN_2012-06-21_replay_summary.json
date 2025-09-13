@@ -1,0 +1,30 @@
+{
+  "symbol": "AMZN",
+  "date": "2012-06-21",
+  "total_events": 57515,
+  "total_trades": 44,
+  "llm_enabled": true,
+  "agents": {
+    "momentum": {
+      "name": "MomentumAgent",
+      "strategy": "momentum",
+      "final_cash": 153853.0,
+      "final_position": 800,
+      "num_trades": 4
+    },
+    "mean_reversion": {
+      "name": "MeanReversionAgent",
+      "strategy": "mean_reversion",
+      "final_cash": 333333,
+      "final_position": 0,
+      "num_trades": 0
+    },
+    "market_maker": {
+      "name": "MarketMakerAgent",
+      "strategy": "market_maker",
+      "final_cash": 333573.5,
+      "final_position": 0,
+      "num_trades": 40
+    }
+  }
+}

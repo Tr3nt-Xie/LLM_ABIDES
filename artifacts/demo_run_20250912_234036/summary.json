@@ -1,0 +1,40 @@
+{
+  "events_processed": 3,
+  "total_signals": 9,
+  "llm_enabled": true,
+  "traders": [
+    {
+      "name": "MomentumTrader",
+      "cash": 9878666.442373347,
+      "shares": 6197,
+      "stock_value": 619700,
+      "total_value": 10498366.442373347,
+      "pnl": -1633.5576266534626,
+      "pnl_pct": -0.01555769168241393,
+      "signals": 3,
+      "trades": 3
+    },
+    {
+      "name": "ContrarianTrader",
+      "cash": 10072661.37327064,
+      "shares": 4269,
+      "stock_value": 426900,
+      "total_value": 10499561.37327064,
+      "pnl": -438.6267293598503,
+      "pnl_pct": -0.004177397422474765,
+      "signals": 3,
+      "trades": 3
+    },
+    {
+      "name": "NeutralTrader",
+      "cash": 9969696.674616838,
+      "shares": 5299,
+      "stock_value": 529900,
+      "total_value": 10499596.674616838,
+      "pnl": -403.32538316212595,
+      "pnl_pct": -0.00384119412535358,
+      "signals": 3,
+      "trades": 3
+    }
+  ]
+}

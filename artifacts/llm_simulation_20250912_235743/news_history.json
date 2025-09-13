@@ -1,0 +1,62 @@
+[
+  {
+    "timestamp": "2025-09-12T23:57:33.947298",
+    "headline": "Regulatory approval pending for AMZN merger",
+    "content": "Details about regulatory approval pending for amzn merger. Market analysts are monitoring the situation closely.",
+    "category": "mergers",
+    "affected_symbols": [
+      "AMZN"
+    ],
+    "sentiment_score": -0.31939596251807445,
+    "importance": 0.45002987168973163
+  },
+  {
+    "timestamp": "2025-09-12T23:57:36.393635",
+    "headline": "Market update affects AMZN",
+    "content": "Details about market update affects amzn. Market analysts are monitoring the situation closely.",
+    "category": "analyst_upgrade",
+    "affected_symbols": [
+      "AAPL",
+      "AMZN"
+    ],
+    "sentiment_score": 0.258601952721787,
+    "importance": 0.38756081321108016
+  },
+  {
+    "timestamp": "2025-09-12T23:57:37.482287",
+    "headline": "Regulatory approval pending for TSLA merger",
+    "content": "Details about regulatory approval pending for tsla merger. Market analysts are monitoring the situation closely.",
+    "category": "mergers",
+    "affected_symbols": [
+      "TSLA"
+    ],
+    "sentiment_score": -0.5521602179478265,
+    "importance": 0.5553538449177584
+  },
+  {
+    "timestamp": "2025-09-12T23:57:40.050431",
+    "headline": "Market update affects AMZN",
+    "content": "Details about market update affects amzn. Market analysts are monitoring the situation closely.",
+    "category": "analyst_upgrade",
+    "affected_symbols": [
+      "MSFT",
+      "GOOGL",
+      "AMZN"
+    ],
+    "sentiment_score": -0.17500400569873775,
+    "importance": 0.8127431606579438
+  },
+  {
+    "timestamp": "2025-09-12T23:57:41.389929",
+    "headline": "AAPL announces breakthrough in blockchain development",
+    "content": "Details about aapl announces breakthrough in blockchain development. Market analysts are monitoring the situation closely.",
+    "category": "product_launch",
+    "affected_symbols": [
+      "TSLA",
+      "AAPL",
+      "AMZN"
+    ],
+    "sentiment_score": 0.7307826500799961,
+    "importance": 0.8584955101560683
+  }
+]
