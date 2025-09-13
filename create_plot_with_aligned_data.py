@@ -110,7 +110,7 @@ def create_aligned_plot():
         ax.set_xlabel('Hours from Market Open', fontsize=12)
         ax.set_ylabel('Price (USD)', fontsize=12)
         ax.set_xlim(-0.2, 6.7)
-        ax.set_ylim(210, 230)  # Adjusted for better visibility
+        ax.set_ylim(165, 230)  # Extended to show LLMON's full range (min: $169)
         ax.grid(True, alpha=0.3)
         ax.legend(loc='best', fontsize=10)
         
@@ -154,7 +154,7 @@ def create_aligned_plot():
     ax4.set_xlabel('Hours from Market Open', fontsize=12)
     ax4.set_ylabel('Price (USD)', fontsize=12)
     ax4.set_xlim(-0.2, 6.7)
-    ax4.set_ylim(210, 230)
+    ax4.set_ylim(165, 230)  # Extended to show full range
     ax4.grid(True, alpha=0.3)
     ax4.legend(loc='lower left', fontsize=10)
     
