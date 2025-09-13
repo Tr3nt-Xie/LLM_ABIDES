@@ -82,9 +82,9 @@ duration_seconds = 23400  # 6.5 hours
 target_trades = 11419  # From real NASDAQ
 news_decay_rate = 0.0008
 news_impact_multiplier = {
-    "LLMON": 1.8,
-    "LLMOFF": 0.15,
-    "Baseline": 0.05
+    "LLMON": 1.5,     # Intelligent response to news
+    "LLMOFF": 0.12,   # Minimal awareness
+    "Baseline": 0.03  # Almost no response
 }
 ```
 
@@ -92,9 +92,9 @@ news_impact_multiplier = {
 
 ### Price Changes
 - Real NASDAQ: -1.34%
-- LLMON: -4.77%
-- LLMOFF: -1.36%
-- Baseline: -0.66%
+- LLMON: -2.09%
+- LLMOFF: -0.96%
+- Baseline: +1.77%
 
 ### Trade Statistics
 All conditions generate ~11,400 trades with 2.4 unique prices per second average.
