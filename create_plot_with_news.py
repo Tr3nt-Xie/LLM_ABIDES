@@ -75,16 +75,25 @@ def create_plot_with_clear_news():
             ax.axvline(x=news['hour'], color=news['color'], 
                       linestyle='--', linewidth=2, alpha=0.7, zorder=2)
         
-        # Plot real NASDAQ (black line)
+        # Plot real NASDAQ (black line) - MAKE IT VERY VISIBLE
         ax.plot(real_time_hours, real_mid_prices, 'k-', 
-               linewidth=2, label='Real NASDAQ', alpha=0.7, zorder=3)
+               linewidth=2.5, label='Real NASDAQ', alpha=1.0, zorder=5)
         
-        # Plot simulated data (blue line)
+        # Plot simulated data (colored line based on condition)
         if len(df_orderbook) > 0:
             time_hours = df_orderbook['timestamp'].values / 3600
             mid_prices = df_orderbook['mid_price'].values
-            ax.plot(time_hours, mid_prices, 'b-', 
-                   linewidth=2.5, label=f'{condition}', zorder=4)
+            
+            # Different colors for each condition
+            if condition == 'LLMON':
+                sim_color = 'blue'
+            elif condition == 'LLMOFF':
+                sim_color = 'green'
+            else:  # Baseline
+                sim_color = 'orange'
+            
+            ax.plot(time_hours, mid_prices, color=sim_color, 
+                   linewidth=2, label=f'{condition}', alpha=0.8, zorder=4)
             
             # Calculate change
             change = (mid_prices[-1] / mid_prices[0] - 1) * 100
@@ -100,8 +109,12 @@ def create_plot_with_clear_news():
             trade_prices = sample_trades['price'].values
             ax.scatter(trade_times, trade_prices, c='red', s=0.5, alpha=0.2, zorder=1)
         
+        # Calculate real NASDAQ change
+        real_change = (real_mid_prices[-1] / real_mid_prices[0] - 1) * 100
+        
         # Set labels and limits
-        ax.set_title(f'{condition} (Change: {change:+.2f}%)', fontsize=14, fontweight='bold')
+        ax.set_title(f'{condition} vs Real NASDAQ\nSim: {change:+.2f}% | Real: {real_change:+.2f}%', 
+                    fontsize=13, fontweight='bold')
         ax.set_xlabel('Trading Hours', fontsize=12)
         ax.set_ylabel('Price (USD)', fontsize=12)
         ax.set_xlim(-0.2, 6.7)
@@ -136,9 +149,10 @@ def create_plot_with_clear_news():
         ax4.axvline(x=news['hour'], color=news['color'], 
                    linestyle='--', linewidth=1.5, alpha=0.5, zorder=2)
     
-    # Plot all lines
-    ax4.plot(real_time_hours, real_mid_prices, 'k-', linewidth=2.5, 
-            label='Real NASDAQ', alpha=0.8, zorder=5)
+    # Plot real NASDAQ with emphasis (thick black line)
+    real_change = (real_mid_prices[-1] / real_mid_prices[0] - 1) * 100
+    ax4.plot(real_time_hours, real_mid_prices, 'k-', linewidth=3, 
+            label=f'Real NASDAQ ({real_change:+.2f}%)', alpha=1.0, zorder=6)
     
     colors = {'LLMON': 'blue', 'LLMOFF': 'green', 'Baseline': 'orange'}
     for condition, color in colors.items():
