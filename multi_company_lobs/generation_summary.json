@@ -1,0 +1,327 @@
+{
+  "results": {
+    "AMZN": {
+      "LLMON": {
+        "condition": "LLMON",
+        "symbol": "AMZN",
+        "date": "2012-06-21",
+        "initial_price": 223.56,
+        "final_price": 231.07441739213905,
+        "price_change": 3.3616901369500685,
+        "num_trades": 11700,
+        "num_messages": 58500,
+        "num_snapshots": 23400,
+        "avg_spread": 0.0100004304207813,
+        "enhanced_llmon": true,
+        "timestamp": "2025-09-15T05:27:54.724211"
+      },
+      "LLMOFF": {
+        "condition": "LLMOFF",
+        "symbol": "AMZN",
+        "date": "2012-06-21",
+        "initial_price": 223.56,
+        "final_price": 224.64908398487782,
+        "price_change": 0.48715511937638123,
+        "num_trades": 10527,
+        "num_messages": 70200,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010016876142512947,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:27:56.605327"
+      },
+      "Baseline": {
+        "condition": "Baseline",
+        "symbol": "AMZN",
+        "date": "2012-06-21",
+        "initial_price": 223.56,
+        "final_price": 224.90687515733117,
+        "price_change": 0.6024669696417906,
+        "num_trades": 8216,
+        "num_messages": 35100,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010020958165521288,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:27:58.319282"
+      }
+    },
+    "GOOGL": {
+      "LLMON": {
+        "condition": "LLMON",
+        "symbol": "GOOGL",
+        "date": "2012-06-21",
+        "initial_price": 571.5,
+        "final_price": 589.2734686496989,
+        "price_change": 3.109558371656007,
+        "num_trades": 11700,
+        "num_messages": 58500,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010000359256431333,
+        "enhanced_llmon": true,
+        "timestamp": "2025-09-15T05:28:02.697230"
+      },
+      "LLMOFF": {
+        "condition": "LLMOFF",
+        "symbol": "GOOGL",
+        "date": "2012-06-21",
+        "initial_price": 571.5,
+        "final_price": 566.6756911321395,
+        "price_change": -0.8441485333089305,
+        "num_trades": 10549,
+        "num_messages": 70200,
+        "num_snapshots": 23400,
+        "avg_spread": 0.01001405667314665,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:04.564092"
+      },
+      "Baseline": {
+        "condition": "Baseline",
+        "symbol": "GOOGL",
+        "date": "2012-06-21",
+        "initial_price": 571.5,
+        "final_price": 567.2404442160664,
+        "price_change": -0.7453290960513725,
+        "num_trades": 8203,
+        "num_messages": 35100,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010017457780106348,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:06.233549"
+      }
+    },
+    "MSFT": {
+      "LLMON": {
+        "condition": "LLMON",
+        "symbol": "MSFT",
+        "date": "2012-06-21",
+        "initial_price": 30.59,
+        "final_price": 31.6051725466012,
+        "price_change": 3.318909680420856,
+        "num_trades": 11700,
+        "num_messages": 58500,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010000288640507149,
+        "enhanced_llmon": true,
+        "timestamp": "2025-09-15T05:28:10.520344"
+      },
+      "LLMOFF": {
+        "condition": "LLMOFF",
+        "symbol": "MSFT",
+        "date": "2012-06-21",
+        "initial_price": 30.59,
+        "final_price": 30.605734030099363,
+        "price_change": 0.0514352079090008,
+        "num_trades": 10486,
+        "num_messages": 70200,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010011282241637467,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:12.372062"
+      },
+      "Baseline": {
+        "condition": "Baseline",
+        "symbol": "MSFT",
+        "date": "2012-06-21",
+        "initial_price": 30.59,
+        "final_price": 30.626823609924585,
+        "price_change": 0.12037793371881822,
+        "num_trades": 8155,
+        "num_messages": 35100,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010014009982200171,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:14.048432"
+      }
+    },
+    "AAPL": {
+      "LLMON": {
+        "condition": "LLMON",
+        "symbol": "AAPL",
+        "date": "2012-06-21",
+        "initial_price": 582.13,
+        "final_price": 599.6840943744082,
+        "price_change": 3.0154092221100326,
+        "num_trades": 11700,
+        "num_messages": 58500,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010000401732096834,
+        "enhanced_llmon": true,
+        "timestamp": "2025-09-15T05:28:18.306238"
+      },
+      "LLMOFF": {
+        "condition": "LLMOFF",
+        "symbol": "AAPL",
+        "date": "2012-06-21",
+        "initial_price": 582.13,
+        "final_price": 576.6736944268762,
+        "price_change": -0.9373001860621843,
+        "num_trades": 10554,
+        "num_messages": 70200,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010015761131501743,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:20.201310"
+      },
+      "Baseline": {
+        "condition": "Baseline",
+        "symbol": "AAPL",
+        "date": "2012-06-21",
+        "initial_price": 582.13,
+        "final_price": 577.2450148180986,
+        "price_change": -0.839157092385101,
+        "num_trades": 8193,
+        "num_messages": 35100,
+        "num_snapshots": 23400,
+        "avg_spread": 0.01001957358174853,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:21.884587"
+      }
+    },
+    "TSLA": {
+      "LLMON": {
+        "condition": "LLMON",
+        "symbol": "TSLA",
+        "date": "2012-06-21",
+        "initial_price": 33.87,
+        "final_price": 34.50392591214608,
+        "price_change": 1.8716631137502215,
+        "num_trades": 11700,
+        "num_messages": 58500,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010000567599551848,
+        "enhanced_llmon": true,
+        "timestamp": "2025-09-15T05:28:26.220974"
+      },
+      "LLMOFF": {
+        "condition": "LLMOFF",
+        "symbol": "TSLA",
+        "date": "2012-06-21",
+        "initial_price": 33.87,
+        "final_price": 33.341006310912,
+        "price_change": -1.5618355154650043,
+        "num_trades": 10565,
+        "num_messages": 70200,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010022513488128442,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:28.092126"
+      },
+      "Baseline": {
+        "condition": "Baseline",
+        "symbol": "TSLA",
+        "date": "2012-06-21",
+        "initial_price": 33.87,
+        "final_price": 33.445861818525266,
+        "price_change": -1.2522532668282627,
+        "num_trades": 8240,
+        "num_messages": 35100,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010027957952348322,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:29.777662"
+      }
+    },
+    "META": {
+      "LLMON": {
+        "condition": "LLMON",
+        "symbol": "META",
+        "date": "2012-06-21",
+        "initial_price": 31.91,
+        "final_price": 32.948286529874274,
+        "price_change": 3.253221749880142,
+        "num_trades": 11700,
+        "num_messages": 58500,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010000496401628034,
+        "enhanced_llmon": true,
+        "timestamp": "2025-09-15T05:28:33.996794"
+      },
+      "LLMOFF": {
+        "condition": "LLMOFF",
+        "symbol": "META",
+        "date": "2012-06-21",
+        "initial_price": 31.91,
+        "final_price": 32.04549625565549,
+        "price_change": 0.4246200427937774,
+        "num_trades": 10558,
+        "num_messages": 70200,
+        "num_snapshots": 23400,
+        "avg_spread": 0.01001965342622899,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:35.873520"
+      },
+      "Baseline": {
+        "condition": "Baseline",
+        "symbol": "META",
+        "date": "2012-06-21",
+        "initial_price": 31.91,
+        "final_price": 32.080635508588315,
+        "price_change": 0.534739920364502,
+        "num_trades": 8229,
+        "num_messages": 35100,
+        "num_snapshots": 23400,
+        "avg_spread": 0.010024406663428815,
+        "enhanced_llmon": false,
+        "timestamp": "2025-09-15T05:28:37.542335"
+      }
+    }
+  },
+  "llmon_config": {
+    "coordination_factor": 2.0,
+    "news_response_quality": 0.3,
+    "noise_reduction": 0.3,
+    "prediction_accuracy": 0.95,
+    "liquidity_provision": 2.0,
+    "spread_efficiency": 0.4,
+    "momentum_sensitivity": 0.5,
+    "mean_reversion_boost": 2.0,
+    "profit_optimization": 2.0,
+    "risk_management": 0.4,
+    "arbitrage_detection": 1.5,
+    "market_making_edge": 0.002
+  },
+  "company_configs": {
+    "AMZN": {
+      "initial_price": 223.56,
+      "base_volatility": 3e-05,
+      "sector": "tech",
+      "market_cap": "large",
+      "news_sensitivity": 1.2
+    },
+    "GOOGL": {
+      "initial_price": 571.5,
+      "base_volatility": 2.5e-05,
+      "sector": "tech",
+      "market_cap": "large",
+      "news_sensitivity": 1.0
+    },
+    "MSFT": {
+      "initial_price": 30.59,
+      "base_volatility": 2e-05,
+      "sector": "tech",
+      "market_cap": "large",
+      "news_sensitivity": 0.9
+    },
+    "AAPL": {
+      "initial_price": 582.13,
+      "base_volatility": 2.8e-05,
+      "sector": "tech",
+      "market_cap": "large",
+      "news_sensitivity": 1.1
+    },
+    "TSLA": {
+      "initial_price": 33.87,
+      "base_volatility": 4e-05,
+      "sector": "auto",
+      "market_cap": "mid",
+      "news_sensitivity": 1.5
+    },
+    "META": {
+      "initial_price": 31.91,
+      "base_volatility": 3.5e-05,
+      "sector": "tech",
+      "market_cap": "large",
+      "news_sensitivity": 1.3
+    }
+  },
+  "timestamp": "2025-09-15T05:28:37.550768"
+}
