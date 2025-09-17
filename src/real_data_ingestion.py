@@ -17,6 +17,8 @@ from datetime import datetime
 
 import pandas as pd
 import yfinance as yf
+import re
+from urllib.parse import urlparse
 
 
 @dataclass
@@ -26,11 +28,13 @@ class MarketFetchConfig:
 	end: datetime
 	interval: str = "1m"
 	allow_fallback: bool = True  # fall back to coarser intervals if needed
+	prepost: bool = True  # include pre/post market data when available
 
 
-def _yf_history(symbol: str, start: datetime, end: datetime, interval: str) -> pd.DataFrame:
+
+def _yf_history(symbol: str, start: datetime, end: datetime, interval: str, prepost: bool) -> pd.DataFrame:
 	t = yf.Ticker(symbol)
-	df = t.history(start=start, end=end, interval=interval, actions=False)
+	df = t.history(start=start, end=end, interval=interval, actions=False, prepost=prepost)
 	if df is None:
 		return pd.DataFrame()
 	return df
@@ -57,7 +61,7 @@ def fetch_intraday_ohlcv(cfg: MarketFetchConfig) -> pd.DataFrame:
 			if alt not in intervals:
 				intervals.append(alt)
 	for itv in intervals:
-		raw = _yf_history(cfg.symbol, cfg.start, cfg.end, itv)
+		raw = _yf_history(cfg.symbol, cfg.start, cfg.end, itv, cfg.prepost)
 		df = _normalize_history(raw)
 		if not df.empty:
 			# Annotate interval used
@@ -73,6 +77,10 @@ def fetch_recent_news(symbol: str, max_items: int = 50) -> pd.DataFrame:
 	for item in news_items[:max_items]:
 		ts = item.get("providerPublishTime")
 		ts_dt = pd.to_datetime(ts, unit="s", utc=True) if ts is not None else pd.NaT
+		# Fallback: infer timestamp from link if providerPublishTime missing
+		if pd.isna(ts_dt):
+			inferred = _infer_timestamp_from_link(item.get("link"))
+			ts_dt = inferred if inferred is not None else pd.NaT
 		rows.append(
 			{
 				"timestamp": ts_dt,
@@ -82,10 +90,50 @@ def fetch_recent_news(symbol: str, max_items: int = 50) -> pd.DataFrame:
 				"type": item.get("type"),
 			}
 		)
-	return pd.DataFrame(rows)
+	df = pd.DataFrame(rows)
+	# As a last resort, assign synthetic, ordered timestamps to any remaining NaT to preserve ordering
+	if not df.empty and "timestamp" in df.columns:
+		na_idx = df.index[df["timestamp"].isna()].tolist()
+		if na_idx:
+			now = pd.Timestamp.utcnow()
+			for i, idx in enumerate(na_idx):
+				# Space them 5 minutes apart backwards to maintain order stability
+				df.at[idx, "timestamp"] = now - pd.Timedelta(minutes=5 * i)
+	return df
 
 
-def fetch_price_at_timestamp(symbol: str, at_utc: datetime, interval: str = "1m", allow_fallback: bool = True) -> Tuple[Optional[float], Dict[str, Any]]:
+def _infer_timestamp_from_link(link: Optional[str]) -> Optional[pd.Timestamp]:
+	"""Attempt to infer a publish date from a news link.
+
+	Supports common patterns like /YYYY/MM/DD/ or -YYYY-MM-DD- in paths.
+	Returns a UTC pd.Timestamp at 16:00:00 for the parsed date.
+	"""
+	if not link:
+		return None
+	try:
+		u = urlparse(link)
+		path = u.path or ""
+		# Pattern 1: /YYYY/MM/DD/
+		m = re.search(r"/(20\d{2})/(0[1-9]|1[0-2])/(0[1-9]|[12]\d|3[01])/", path)
+		if m:
+			y, mth, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+			return pd.Timestamp(year=y, month=mth, day=d, hour=16, tz="UTC")
+		# Pattern 2: -YYYY-MM-DD or _YYYY-MM-DD in path
+		m = re.search(r"[-_](20\d{2})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])", path)
+		if m:
+			y, mth, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+			return pd.Timestamp(year=y, month=mth, day=d, hour=16, tz="UTC")
+		# Pattern 3: YYYYMMDD in path segments
+		m = re.search(r"/(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(/|\b)", path)
+		if m:
+			y, mth, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+			return pd.Timestamp(year=y, month=mth, day=d, hour=16, tz="UTC")
+		return None
+	except Exception:
+		return None
+
+
+def fetch_price_at_timestamp(symbol: str, at_utc: datetime, interval: str = "1m", allow_fallback: bool = True, prepost: bool = True) -> Tuple[Optional[float], Dict[str, Any]]:
 	"""Fetch the real-world price nearest to a UTC timestamp.
 	Returns (price, metadata) where price may be None if unavailable.
 	Metadata includes: interval_used, source_row_timestamp.
@@ -94,7 +142,7 @@ def fetch_price_at_timestamp(symbol: str, at_utc: datetime, interval: str = "1m"
 	at = pd.to_datetime(at_utc, utc=True)
 	window_start = (at - pd.Timedelta(days=2)).to_pydatetime()
 	window_end = (at + pd.Timedelta(days=1)).to_pydatetime()
-	cfg = MarketFetchConfig(symbol=symbol, start=window_start, end=window_end, interval=interval, allow_fallback=allow_fallback)
+	cfg = MarketFetchConfig(symbol=symbol, start=window_start, end=window_end, interval=interval, allow_fallback=allow_fallback, prepost=prepost)
 	df = fetch_intraday_ohlcv(cfg)
 	if df is None or df.empty:
 		return None, {"interval_used": None, "source_row_timestamp": None}

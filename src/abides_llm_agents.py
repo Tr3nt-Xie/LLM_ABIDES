@@ -18,26 +18,23 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 import importlib
 
-# Prefer real ABIDES imports, fallback to mock core for development
+# Prefer real ABIDES imports, fallback to local mock core for development
 try:
     TradingAgent = importlib.import_module("abides_markets.agents.trading_agent").TradingAgent
     Message = importlib.import_module("abides_core.message.message").Message
     util = importlib.import_module("abides_core.utils.util")
 except Exception:
     try:
-        TradingAgent = importlib.import_module("agent.TradingAgent").TradingAgent
-        Message = importlib.import_module("message.Message").Message
-        util = importlib.import_module("util.util")
+        # Try namespaced import when running as module (src.*)
+        from src.mock_abides_core import TradingAgent, Message, util
     except Exception:
+        # Fallback: adjust sys.path to include this file's directory
+        import os, sys
+        sys.path.insert(0, os.path.dirname(__file__))
         from mock_abides_core import TradingAgent, Message, util
 
-# LLM imports
-try:
-    import autogen
-    HAS_LLM = True
-except ImportError:
-    HAS_LLM = False
-    logging.getLogger(__name__).warning("autogen not found. LLM features disabled.")
+# LLM integration (provided via enhanced_llm_abides_system if available)
+HAS_LLM = False
 
 # Enhanced LLM system imports
 try:
@@ -45,6 +42,7 @@ try:
         NewsEvent, MarketSignal, NewsCategory, 
         EnhancedLLMNewsAnalyzer, RealisticNewsGenerator
     )
+    HAS_LLM = True
 except ImportError:
     # Minimal fallbacks for typing only
     from enum import Enum
@@ -72,6 +70,7 @@ except ImportError:
         duration: int
         confidence: float
         source_agent: str
+    HAS_LLM = False
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +78,9 @@ logger = logging.getLogger(__name__)
 class ABIDESLLMNewsAnalyzer(TradingAgent):
     """
     ABIDES-compatible LLM News Analyzer Agent
+    Note: When official ABIDES is not installed, this class runs in demo mode.
+    Methods that require kernel scheduling, message bus, or real exchange will
+    be no-ops. Look for "util.log_print" messages to understand mock behavior.
     """
     
     def __init__(self, id, name, type="ABIDESLLMNewsAnalyzer", symbols=None,
@@ -131,7 +133,15 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
         if not self.news_generator:
             return
         try:
-            news_event = self.news_generator.generate_realistic_event()
+            # Support multiple generator method names across implementations
+            if hasattr(self.news_generator, 'generate_news_event'):
+                news_event = self.news_generator.generate_news_event()
+            elif hasattr(self.news_generator, 'generate_event'):
+                news_event = self.news_generator.generate_event()
+            elif hasattr(self.news_generator, 'generate_realistic_event'):
+                news_event = self.news_generator.generate_realistic_event()
+            else:
+                raise AttributeError("News generator missing generate_* method")
             news_event.timestamp = currentTime
             util.log_print(f"{self.name} generated news: {news_event.headline}")
             self.processNewsEvent(currentTime, news_event)
@@ -157,12 +167,14 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
                     'impact_assessment': {
                         'immediate_impact': abs(sentiment) * 5,
                         'confidence': confidence,
+                        'black_swan_risk': raw.get('black_swan_risk', 0.0),
                     },
                     'price_predictions': {
                         'direction': 'up' if sentiment > 0 else 'down',
                         'magnitude_percent': abs(sentiment) * 2,
                     },
-                    'reasoning': raw.get('reasoning', 'LLM analysis')
+                    'reasoning': raw.get('reasoning', 'LLM analysis'),
+                    'black_swan_notes': raw.get('black_swan_notes', '')
                 }
             else:
                 analysis = self.createFallbackAnalysis(news_event)
@@ -208,10 +220,14 @@ class ABIDESLLMNewsAnalyzer(TradingAgent):
         }
     
     def updateMarketContext(self, market_data):
-        pass
+        # Stub for ABIDES integration; no-op in demo mode
+        if not hasattr(self, 'market_context'):
+            self.market_context = {}
+        self.market_context.update(market_data or {})
     
     def schedulePeriodicNews(self):
-        pass
+        # Stub for ABIDES kernel scheduling; no-op in demo mode
+        util.log_print(f"{self.name} schedulePeriodicNews (demo mode)")
     
     def processPendingNews(self, currentTime):
         if self.pending_news:
@@ -262,10 +278,10 @@ class ABIDESLLMTradingAgent(TradingAgent):
     def _initializeStrategyParams(self):
         """Initialize strategy-specific parameters"""
         base_params = {
-            'max_position_pct': 0.10,  # 10% of portfolio
-            'min_confidence': 0.6,
-            'signal_decay_minutes': 30,
-            'rebalance_threshold': 0.05
+            'max_position_pct': 0.05,  # reduce to 5% of portfolio
+            'min_confidence': 0.7,     # require higher confidence
+            'signal_decay_minutes': 15, # faster decay to reduce persistence
+            'rebalance_threshold': 0.08 # reduce churn
         }
         
         # Strategy-specific adjustments
@@ -426,8 +442,8 @@ class ABIDESLLMTradingAgent(TradingAgent):
             portfolio_value = self.calculatePortfolioValue()
             max_position_value = portfolio_value * self.strategy_params['max_position_pct']
             
-            # Adjust by signal strength and confidence
-            position_value = max_position_value * signal['strength'] * signal['confidence']
+            # Adjust by signal strength and confidence (temper intensity)
+            position_value = max_position_value * (signal['strength'] ** 0.8) * (signal['confidence'] ** 0.8)
             
             # Convert to shares (assuming we have current price)
             current_price = self.getLastTradePrice()
@@ -445,7 +461,7 @@ class ABIDESLLMTradingAgent(TradingAgent):
                 order_quantity = -order_quantity
             
             # Check if order is significant enough
-            if abs(order_quantity) < 10:  # Minimum order size
+            if abs(order_quantity) < 25:  # Raise minimum size to avoid jitter
                 return
             
             # Place order
@@ -575,17 +591,17 @@ class ABIDESLLMTradingAgent(TradingAgent):
     def subscribeToMarketData(self):
         """Subscribe to market data updates"""
         # In real ABIDES, would subscribe to exchange market data
-        pass
+        util.log_print(f"{self.name} subscribeToMarketData (demo mode)")
     
     def scheduleNextTrading(self, currentTime):
         """Schedule next trading activity"""
         # In real ABIDES, would use kernel.setWakeup()
-        pass
+        util.log_print(f"{self.name} scheduleNextTrading (demo mode)")
     
     def manageActiveOrders(self, currentTime):
         """Manage active orders (timeouts, modifications)"""
         # Check for order timeouts and manage order lifecycle
-        pass
+        util.log_print(f"{self.name} manageActiveOrders (demo mode)")
 
 
 class ABIDESLLMMarketMaker(ABIDESLLMTradingAgent):
@@ -831,13 +847,8 @@ def runABIDESWithLLMAgents(config_name="llm_enhanced_rmsc04", duration_hours=1):
     
     # LLM configuration
     llm_config = {
-        "config_list": [
-            {
-                "model": "gpt-4o",
-                "api_key": "your-api-key-here",  # Replace with actual key
-                "temperature": 0.3
-            }
-        ],
+        "model": "gpt-4o",
+        "temperature": 0.3,
         "timeout": 60
     }
     

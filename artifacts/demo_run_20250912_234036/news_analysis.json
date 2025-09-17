@@ -1,0 +1,35 @@
+[
+  {
+    "timestamp": "2025-09-12T23:40:35.033880",
+    "headline": "Market update affects ABM",
+    "category": "macro_economic",
+    "symbols": [
+      "ABM"
+    ],
+    "sentiment": 0.15357866428961364,
+    "impact_score": 0.28901008879784473,
+    "confidence": 0.7243893450724651
+  },
+  {
+    "timestamp": "2025-09-12T23:40:35.534137",
+    "headline": "New regulations may challenge industry operations",
+    "category": "regulatory",
+    "symbols": [
+      "ABM"
+    ],
+    "sentiment": 0.1565053125233656,
+    "impact_score": 0.7134380468468059,
+    "confidence": 0.7324371568394741
+  },
+  {
+    "timestamp": "2025-09-12T23:40:36.034371",
+    "headline": "Market update affects ABM",
+    "category": "mergers",
+    "symbols": [
+      "ABM"
+    ],
+    "sentiment": 0.3341143468330221,
+    "impact_score": 0.25396629939996124,
+    "confidence": 0.7297711975717599
+  }
+]

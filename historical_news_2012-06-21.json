@@ -1,0 +1,36 @@
+{
+  "date": "2012-06-21",
+  "symbol": "AMZN",
+  "market_context": "Risk-off day following Fed announcement",
+  "actual_return": -0.0134,
+  "events": [
+    {
+      "timestamp": 3600,
+      "headline": "Fed Operation Twist extension fails to boost market confidence",
+      "sentiment": -0.3,
+      "importance": 0.8,
+      "source": "Federal Reserve"
+    },
+    {
+      "timestamp": 7200,
+      "headline": "Spanish bond yields remain elevated above 7%",
+      "sentiment": -0.4,
+      "importance": 0.7,
+      "source": "European Markets"
+    },
+    {
+      "timestamp": 10800,
+      "headline": "Tech sector weakness continues post-Facebook IPO",
+      "sentiment": -0.2,
+      "importance": 0.6,
+      "source": "Market Analysis"
+    },
+    {
+      "timestamp": 14400,
+      "headline": "Afternoon recovery attempt fails, risk-off sentiment persists",
+      "sentiment": -0.1,
+      "importance": 0.5,
+      "source": "Market Update"
+    }
+  ]
+}

@@ -97,7 +97,7 @@ def run_experiments():
         print("Running demo with basic experimental features...")
         run_enhanced_demo()
 
-def run_scaled_data_generation():
+def run_scaled_data_generation(args=None):
     """Run scaled order book data generation"""
     print("📈 Order Book Data Scaling System")
     print("=" * 45)
@@ -120,7 +120,14 @@ def run_scaled_data_generation():
         print("4. Custom   - Configure your own scaling")
         print()
         
-        choice = input("Select scaling option (1-4) [2]: ").strip()
+        # Determine preset from CLI if provided; otherwise prompt
+        preset = None
+        if args and getattr(args, 'scale_preset', None):
+            preset = args.scale_preset.strip().lower()
+        if preset in ("light", "medium", "heavy", "custom"):
+            choice = {"light": "1", "medium": "2", "heavy": "3", "custom": "4"}[preset]
+        else:
+            choice = input("Select scaling option (1-4) [2]: ").strip()
         
         if choice == "1":
             config = data_scaler.ScalingConfig(
@@ -133,7 +140,17 @@ def run_scaled_data_generation():
                 base_orders_per_minute=200, batch_size=10000
             )
         elif choice == "4":
-            config = create_custom_scaling_config()
+            if preset == "custom" and args:
+                # Build from provided CLI overrides where available
+                config = data_scaler.ScalingConfig(
+                    scale_factor=(getattr(args, 'scale_factor', None) or 100),
+                    num_symbols=(getattr(args, 'num_symbols', None) or 10),
+                    days_to_simulate=(getattr(args, 'days', None) or 7),
+                    base_orders_per_minute=(getattr(args, 'orders_per_minute', None) or 100),
+                    batch_size=(getattr(args, 'batch_size', None) or 5000),
+                )
+            else:
+                config = create_custom_scaling_config()
         else:  # Default to medium
             config = data_scaler.ScalingConfig(
                 scale_factor=100, num_symbols=10, days_to_simulate=7,
@@ -149,7 +166,10 @@ def run_scaled_data_generation():
         print(f"  Days: {config.days_to_simulate}")
         print(f"  Estimated Orders: ~{estimated_orders:,}")
         
-        confirm = input("\nProceed with scaling? (y/N): ").strip().lower()
+        if args and getattr(args, 'assume_yes', False):
+            confirm = 'y'
+        else:
+            confirm = input("\nProceed with scaling? (y/N): ").strip().lower()
         if confirm == 'y':
             scaler = data_scaler.DataScaler(config)
             summary = scaler.scale_up_data()
@@ -266,6 +286,14 @@ def main():
     parser.add_argument("--enhanced", action="store_true", help="Run enhanced demo with order book recording")
     parser.add_argument("--experiments", action="store_true", help="Run experiments suite")
     parser.add_argument("--scale-data", action="store_true", help="Run large-scale data generation")
+    # Non-interactive scaling flags
+    parser.add_argument("--scale-preset", choices=["light", "medium", "heavy", "custom"], help="Preset for --scale-data (non-interactive)")
+    parser.add_argument("--scale-factor", type=int, help="Custom scale factor for --scale-data")
+    parser.add_argument("--num-symbols", type=int, help="Number of symbols for --scale-data")
+    parser.add_argument("--days", type=int, help="Simulation days for --scale-data")
+    parser.add_argument("--orders-per-minute", type=int, help="Base orders per minute for --scale-data")
+    parser.add_argument("--batch-size", type=int, help="Batch size for --scale-data")
+    parser.add_argument("--yes", dest="assume_yes", action="store_true", help="Assume yes for prompts (non-interactive)")
     parser.add_argument("--config", action="store_true", help="Test configuration")
     parser.add_argument("--help-extended", action="store_true", help="Show extended help")
     
@@ -282,7 +310,7 @@ def main():
     elif args.experiments:
         run_experiments()
     elif args.scale_data:
-        run_scaled_data_generation()
+        run_scaled_data_generation(args)
     else:
         # Interactive mode
         print("🚀 ABIDES-LLM Integration")
